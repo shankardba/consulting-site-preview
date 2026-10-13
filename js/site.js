@@ -10,7 +10,7 @@ const BRAND = "Data Integration Specialists";
     ["products","Products","products.html"],
     ["demo","Example","demo/index.html"],
     ["learn","Data Architectures","learn/index.html"],
-    ["how","How I work","how.html"],
+    ["how","How we work","how.html"],
     ["about","About","about.html"],
   ];
   const head = document.createElement("header");
