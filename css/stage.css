@@ -1,0 +1,127 @@
+/* Animated explainer "stage": a scene plus a step player.
+   Steps toggle classes; CSS transitions do the motion. .instant replays earlier steps without motion. */
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.stage-view{position:relative;padding:24px;min-height:440px}
+.stage.instant *, .stage.instant *::before, .stage.instant *::after{transition:none!important;animation:none!important}
+.stage-bar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 18px;border-top:1px solid var(--line);background:var(--surface-2)}
+.stage-cap{min-height:3.2em;display:flex;flex-direction:column;justify-content:center}
+.stage-cap .n{font:600 11px var(--mono);letter-spacing:.08em;color:var(--c);text-transform:uppercase}
+.stage-cap .t{font:600 17px/1.4 var(--body)}
+.stage-btns{display:flex;gap:6px}
+.stage-btns button{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;display:grid;place-items:center;font-size:15px}
+.stage-btns button.play{background:var(--c);border-color:var(--c);color:var(--surface)}
+.stage-btns button:disabled{opacity:.4;cursor:default}
+.stage-dots{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:180px}
+.stage-dots button{width:12px;height:12px;border-radius:50%;border:0;padding:0;background:var(--line);cursor:pointer}
+.stage-dots button[aria-current="true"]{background:var(--c)}
+.stage-dots button.seen{background:color-mix(in srgb,var(--c) 45%,var(--line))}
+@media (max-width:640px){
+  .stage-view{padding:14px;min-height:0}
+  .stage-bar{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"cap cap" "btns dots"}
+  .stage-cap{grid-area:cap}.stage-btns{grid-area:btns}.stage-dots{grid-area:dots}
+}
+
+/* shared bits */
+.appear{opacity:0;transform:translateY(8px);transition:opacity .45s ease,transform .45s ease;transition-delay:calc(var(--i,0) * 90ms)}
+.on > .appear,.appear.on{opacity:1;transform:none}
+.flash{animation:flash 1.1s ease}
+@keyframes flash{0%{background:var(--warn-soft);box-shadow:inset 0 0 0 2px var(--warn)}100%{}}
+.shake{animation:shake .5s ease}
+@keyframes shake{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+.pulse{animation:pulse 1.2s ease 2}
+@keyframes pulse{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 35%,transparent)}}
+.badge{display:inline-block;font:600 12px/1.3 var(--mono);padding:4px 8px;border-radius:4px;white-space:nowrap;opacity:0;transform:scale(.9);transition:opacity .3s,transform .3s}
+.badge.on{opacity:1;transform:none}
+.badge.bad{background:var(--bad-soft);color:var(--bad)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.good{background:var(--ok-soft);color:var(--ok)}
+.scroll-x{overflow-x:auto}
+
+/* ---------- spreadsheet scene ---------- */
+.xl{font:14px/1.2 var(--mono);border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.xl-bar{display:flex;gap:10px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.xl-bar .fx{font-style:italic;color:var(--muted);border-right:1px solid var(--line);padding-right:10px}
+.xl table{border-collapse:collapse;width:100%;min-width:720px}
+.xl th,.xl td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px 9px;text-align:left;white-space:nowrap;transition:background .4s,color .4s}
+.xl thead th{background:var(--surface-2);color:var(--muted);font-weight:500;text-align:center}
+.xl td.rn{background:var(--surface-2);color:var(--muted);text-align:center;width:34px}
+.xl tr.hdr td{font-weight:700;background:color-mix(in srgb,var(--sheet-soft) 60%,var(--surface))}
+.xl td.num{text-align:right;font-variant-numeric:tabular-nums}
+.xl td.note{border-right:0;background:var(--surface);min-width:190px}
+.xl tbody tr.row{opacity:0;transition:opacity .4s;transition-delay:calc(var(--i,0) * 110ms)}
+.xl.rows-on tbody tr.row{opacity:1}
+.xl tr.sum td{font-weight:700;opacity:0;transition:opacity .4s}
+.xl.sum-on tr.sum td{opacity:1}
+.xl td.hl{background:var(--sheet-soft)}
+.xl td.dup{background:var(--warn-soft)}
+.xl td.bad{background:var(--bad-soft);color:var(--bad);font-weight:700}
+
+/* ---------- relational scene ---------- */
+.rel-tables{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+@media (max-width:860px){.rel-tables{grid-template-columns:minmax(0,1fr)}}
+.rtable{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface);min-width:0}
+.rtable h4{margin:0;font:700 13px var(--mono);padding:8px 10px;background:var(--rel-soft);color:var(--rel);display:flex;justify-content:space-between}
+.rtable table{border-collapse:collapse;width:100%;font:13px/1.2 var(--mono)}
+.rtable th,.rtable td{padding:6px 8px;border-top:1px solid var(--line);text-align:left;white-space:nowrap;transition:background .4s}
+.rtable th{color:var(--muted);font-weight:500}
+.rtable td.num{text-align:right;font-variant-numeric:tabular-nums}
+.key{display:inline-block;padding:2px 6px;border-radius:4px;background:var(--surface-2);font-weight:700;transition:background .4s,color .4s}
+.rel-tables.c1 .key.k-C1{background:var(--rel);color:var(--surface)}
+.rel-tables.c1 tr.r-C1 td{background:var(--rel-soft)}
+.console{margin-top:16px;border-radius:6px;background:#111a24;color:#d6e2ee;font:13px/1.55 var(--mono);padding:12px 14px;min-height:118px;overflow-x:auto}
+.console .ln{opacity:0;transform:translateY(4px);transition:opacity .35s,transform .35s;transition-delay:calc(var(--i,0) * 450ms);white-space:pre}
+.console .ln.on{opacity:1;transform:none}
+.console .kw{color:#7fb2ff}.console .str{color:#f2c879}.console .cm{color:#7d8c9b}
+.console .err{color:#ff8f80}.console .okc{color:#7ee0a4}
+.console table{border-collapse:collapse;margin-top:6px}
+.console td,.console th{padding:2px 14px 2px 0;text-align:left}
+.console th{color:#7d8c9b;font-weight:500}
+
+/* ---------- document scene ---------- */
+.docs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;padding:14px;border:2px dashed transparent;border-radius:10px;transition:border-color .5s,background .5s}
+.docs.collected{border-color:var(--doc);background:color-mix(in srgb,var(--doc-soft) 45%,transparent)}
+.docs-label{font:700 12px var(--mono);color:var(--doc);letter-spacing:.06em;margin-bottom:8px;opacity:0;transition:opacity .4s}
+.docs-label.on{opacity:1}
+.jdoc{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 12px 14px;font:12.5px/1.6 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;min-width:0;
+  opacity:0;transform:rotate(var(--r,0deg)) translateY(14px);transition:opacity .5s,transform .6s,box-shadow .4s,border-color .4s;transition-delay:calc(var(--i,0) * 120ms)}
+.jdoc.on{opacity:1;transform:rotate(var(--r,0deg))}
+.docs.collected .jdoc.on{transform:none}
+.jdoc .k{color:var(--doc)}.jdoc .s{color:var(--sheet)}.jdoc .n{color:var(--rel)}
+.jdoc .new{background:var(--ok-soft);border-radius:3px;outline:1px solid var(--ok)}
+.jdoc .stale{background:var(--bad-soft);border-radius:3px;outline:1px solid var(--bad)}
+.jdoc.lift{transform:scale(1.04)!important;box-shadow:0 12px 30px rgba(0,0,0,.18);border-color:var(--doc);z-index:2}
+.jdoc .srv{position:absolute;top:8px;right:8px;font:700 10px var(--mono);padding:3px 6px;border-radius:4px;background:var(--doc-soft);color:var(--doc);opacity:0;transition:opacity .4s;white-space:nowrap}
+.docs.sharded .jdoc .srv{opacity:1}
+.jdoc.scan{animation:scan .7s ease both;animation-delay:calc(var(--i,0) * 450ms)}
+@keyframes scan{0%{box-shadow:none}50%{box-shadow:0 0 0 3px var(--warn)}100%{box-shadow:0 0 0 1px var(--warn)}}
+.doc-side{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;min-height:30px}
+
+/* ---------- graph scene ---------- */
+.gwrap{overflow-x:auto}
+.gsvg{display:block;width:100%;min-width:620px;height:auto}
+.gsvg .edge{fill:none;stroke-width:2;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .9s ease,stroke .4s,stroke-width .4s,opacity .4s;opacity:.85}
+.gsvg .edge.on{stroke-dashoffset:0}
+.gsvg .edge.ref{stroke:var(--graph)}
+.gsvg .edge.buy{stroke:var(--rel)}
+.gsvg .edge.has{stroke:var(--doc)}
+.gsvg .edge.sup{stroke:var(--sheet)}
+.gsvg.dim .edge{opacity:.15}
+.gsvg.dim .edge.path{opacity:1;stroke:var(--bad);stroke-width:4}
+.gsvg.dim.reco .edge.path{stroke:var(--ok)}
+.gsvg .node{opacity:0;transition:opacity .4s}
+.gsvg .node.on{opacity:1}
+.gsvg .node circle,.gsvg .node rect{stroke-width:2.5;transition:fill .4s,stroke .4s}
+.gsvg .node text{font:600 14px var(--body);fill:var(--ink)}
+.gsvg .node.cust circle{fill:var(--graph-soft);stroke:var(--graph)}
+.gsvg .node.prod rect{fill:var(--rel-soft);stroke:var(--rel)}
+.gsvg .node.ingr rect{fill:var(--doc-soft);stroke:var(--doc)}
+.gsvg .node.supp rect{fill:var(--sheet-soft);stroke:var(--sheet)}
+.gsvg.dim .node{opacity:.35}
+.gsvg.dim .node.path{opacity:1}
+.gsvg.dim .node.path circle,.gsvg.dim .node.path rect{stroke:var(--bad);stroke-width:4}
+.gsvg.dim.reco .node.path circle,.gsvg.dim.reco .node.path rect{stroke:var(--ok)}
+.gsvg .etext{font:500 11px var(--mono);fill:var(--muted)}
+.glegend{display:flex;gap:14px;flex-wrap:wrap;font:500 13px var(--body);color:var(--muted);margin-bottom:10px}
+.glegend span::before{content:"";display:inline-block;width:18px;height:3px;border-radius:2px;background:var(--lc);vertical-align:middle;margin-right:6px}
+.gpanel{margin-top:12px;min-height:56px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.gpanel .card{padding:12px 14px;flex-direction:row;align-items:center;gap:12px;flex-wrap:wrap}

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Spreadsheets · Data Integration Specialists</title>
+<meta name="description" content="Excel and Google Sheets are where almost every business keeps its first data. They’re brilliant, right up until they aren’t. Watch a week of bakery orders go from handy to risky.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../css/site.css">
+<link rel="stylesheet" href="../css/stage.css">
+</head>
+<body data-root="../" data-page="learn">
+<main class="shape sheet">
+  <header class="learn-head wrap">
+    <span class="chip"><svg class="glyph" style="width:18px;height:18px" viewBox="0 0 44 44" aria-hidden="true"><rect x="4" y="8" width="36" height="28" rx="2"/><path d="M4 17h36M4 26h36M16 8v28M28 8v28"/></svg>Shape 1 · rows and columns</span>
+    <h1>Spreadsheets</h1>
+    <p class="lede" style="margin-top:14px">Excel and Google Sheets are where almost every business keeps its first data. They’re brilliant, right up until they aren’t. Watch a week of bakery orders go from handy to risky.</p>
+    <nav class="learn-nav" aria-label="Data shapes"><a class="shape sheet" href="spreadsheet.html" aria-current="page">Spreadsheets</a><a class="shape rel" href="relational.html">Relational databases</a><a class="shape doc" href="document.html">Document databases</a><a class="shape graph" href="graph.html">Graph databases</a></nav>
+  </header>
+
+  <section class="wrap" aria-label="Animated explainer">
+    <div class="stage shape sheet" tabindex="0" data-scene="spreadsheet">
+      <div class="stage-view"></div>
+      <div class="stage-bar">
+        <div class="stage-btns"><button type="button" data-act="prev" aria-label="Previous step">◀</button><button type="button" class="play" data-act="play" aria-label="Play">▶</button><button type="button" data-act="next" aria-label="Next step">▶▶</button></div>
+        <div class="stage-cap" aria-live="polite"></div>
+        <div class="stage-dots"></div>
+      </div>
+    </div>
+    <p class="muted" style="font-size:14px;margin-top:10px">The example data is made up: a small neighbourhood bakery. Use the arrow keys or the dots to step through.</p>
+  </section>
+
+  <section class="block wrap stack">
+    <h2>The short version</h2>
+    <div class="verdict">
+      <div class="card good"><h3>✓ Great for</h3><ul><li>Lists one person owns: budgets, price lists, quick plans</li><li>Fast math, what-if scenarios and charts</li><li>Sharing a snapshot with someone who just needs to read it</li><li>Prototyping, before you know what you need</li></ul></div>
+      <div class="card bad"><h3>✗ Watch out for</h3><ul><li>The same customer or product typed over and over</li><li>Several people editing at once, with formulas getting overwritten</li><li>No rules: “twelve” in a number column silently breaks totals</li><li>Gets slow and fragile past tens of thousands of rows</li></ul></div>
+    </div>
+    <p class="rule">Perfect for one person’s lists and quick math. When several people share it, or it holds your customers, it’s time for a database.</p>
+    <div class="cards">
+      <div class="card"><div class="eyebrow">Common tools</div><p>Excel, Google Sheets, Airtable (part spreadsheet, part database)</p></div>
+      <div class="card"><div class="eyebrow">From my work</div><p>I once replaced a multi-step Java-and-Excel routine that people ran by hand after every data refresh with a single-click tool. That removed the chance of human error and saved an hour every time it ran.</p></div>
+    </div>
+    <nav class="next-shape" aria-label="Continue"><a class="btn ghost" href="index.html">← All four shapes</a><a class="btn" href="relational.html">Next: Relational databases →</a></nav>
+  </section>
+
+  <section class="block wrap">
+    <div class="cta-band">
+      <div><h3>Not sure which shape your data is?</h3><p class="muted" style="margin-top:6px">A Data Shape Check looks at what you keep, how you use it and where it hurts, then recommends the simplest setup that fits. Fixed price, no obligation to build.</p></div>
+      <a class="btn" href="../start.html?topic=data-shape-check">Book a Data Shape Check</a>
+    </div>
+  </section>
+</main>
+<script src="../js/site.js"></script>
+<script src="../js/stage.js"></script>
+<script src="../js/scenes/spreadsheet.js"></script>
+<script>document.querySelectorAll(".stage[data-scene]").forEach(el => new Stage(el, SCENES[el.dataset.scene]));</script>
+</body>
+</html>

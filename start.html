@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Start a project · Data Integration Specialists</title>
+<meta name="description" content="Tell me about the one thing that hurts most. I’ll reply with the smallest step that helps.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/site.css">
+<style>
+.svc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px 32px;padding-block:36px;border-top:1px solid var(--line);scroll-margin-top:80px}
+.svc:first-of-type{border-top:0}
+.svc h2{font-size:28px}
+.svc ul{margin:8px 0 0;padding-left:20px;display:grid;gap:4px}
+.svc .ladder{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.svc .ladder span{font:500 14px var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+.svc .ladder i{color:var(--muted);font-style:normal}
+@media (max-width:760px){.svc{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body data-root="" data-page="start">
+<main>
+<header class="learn-head wrap"><div class="eyebrow">Start a project</div><h1 style="margin-top:12px">Tell me what hurts.</h1><p class="lede" style="margin-top:14px">A few questions so I can suggest the right first step. I reply within two business days.</p></header>
+
+<section class="block wrap" style="padding-top:24px">
+  <form class="form" id="intake" novalidate>
+    <label for="f-name">Your name<input id="f-name" name="name" autocomplete="name" required></label>
+    <label for="f-email">Email<input id="f-email" name="email" type="email" autocomplete="email" required></label>
+    <label for="f-biz">Business and what it does<input id="f-biz" name="business" placeholder="e.g. Three-location bakery"></label>
+    <label for="f-size">Team size<select id="f-size" name="size"><option value="">Choose one</option><option>Just me</option><option>2–10</option><option>11–50</option><option>More than 50</option></select></label>
+    <label for="f-topic">What would you like help with?<select id="f-topic" name="topic">
+      <option value="">Choose one</option>
+      <option value="data-shape-check">Not sure: help me figure out my data</option>
+      <option value="spreadsheet-app">Spreadsheet → App / Workbook Audit</option>
+      <option value="ai-workbench">AI Workbench</option>
+      <option value="aws-review">AWS Cost &amp; Resilience Review</option>
+      <option value="automation">Automation Sprint</option>
+      <option value="web">Website or add-on</option>
+      <option value="production-ready-check">Production-Ready Check</option>
+      <option value="other">Something else</option></select></label>
+    <label for="f-pain">The one thing that hurts most<span class="hint">One or two sentences is plenty.</span><textarea id="f-pain" name="pain" rows="4"></textarea></label>
+    <label for="f-budget">Budget range<select id="f-budget" name="budget"><option value="">Choose one</option><option>Under $1,500</option><option>$1,500–5,000</option><option>$5,000–15,000</option><option>Over $15,000</option></select></label>
+    <label for="f-decider">Who makes the final decision?<select id="f-decider" name="decider"><option value="">Choose one</option><option>I do</option><option>Me and one partner</option><option>A group or board</option></select></label>
+    <div class="hp" aria-hidden="true"><label for="f-site">Leave this empty<input id="f-site" name="company_website" tabindex="-1" autocomplete="off"></label></div>
+    <div id="f-turnstile" data-sitekey=""></div>
+    <div><button class="btn" type="submit" id="f-send">Send</button></div>
+    <p class="status" id="f-status" role="status" hidden></p>
+    <p class="hint muted" style="font-size:14px">I only use these details to reply to you. They’re stored in a private spreadsheet that only I can see, and never shared or added to a mailing list.</p>
+  </form>
+  <div class="card" id="f-done" hidden style="max-width:640px"><h3>Thanks, it’s on its way.</h3><p class="muted">I’ll reply within two business days, usually with one or two questions and a suggested first step.</p></div>
+</section>
+</main>
+<script src="js/site.js"></script>
+<script>
+(function(){
+  const f = document.getElementById("intake"), st = document.getElementById("f-status"), send = document.getElementById("f-send");
+  const startedAt = Date.now();
+  const t = new URLSearchParams(location.search).get("topic");
+  if(t){ const o = [...f.topic.options].find(o => o.value === t); if(o) f.topic.value = t; }
+  // Turnstile loads only when a site key is set (see BACKLOG.md).
+  const ts = document.getElementById("f-turnstile");
+  if(ts.dataset.sitekey){ const s = document.createElement("script"); s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js"; s.async = true; document.head.append(s); ts.className = "cf-turnstile"; }
+  const say = (msg, bad) => { st.hidden = false; st.textContent = msg; st.style.background = bad ? "var(--bad-soft)" : "var(--warn-soft)"; };
+  f.addEventListener("submit", async e => {
+    e.preventDefault();
+    if(!f.name.value.trim()){ say("Please add your name.", true); f.name.focus(); return; }
+    if(!f.email.value || !f.email.validity.valid){ say("Please add a valid email so I can reply.", true); f.email.focus(); return; }
+    const data = Object.fromEntries(new FormData(f));
+    data.startedAt = startedAt; data.page = location.pathname + location.search;
+    data.turnstileToken = f.querySelector('[name="cf-turnstile-response"]')?.value || "";
+    send.disabled = true; send.textContent = "Sending…"; st.hidden = true;
+    try{
+      const res = await fetch("/api/intake", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(data) });
+      if([404,405,501].includes(res.status)){ say("Preview only: this copy of the site has no form handler running, so nothing was sent."); return; }
+      const out = await res.json().catch(() => ({}));
+      if(!res.ok){ say(out.error || "Something went wrong. Please try again.", true); if(out.field && f[out.field]) f[out.field].focus(); return; }
+      f.hidden = true; document.getElementById("f-done").hidden = false;
+    }catch{ say("Couldn’t reach the server. Check your connection and try again.", true); }
+    finally{ send.disabled = false; send.textContent = "Send"; }
+  });
+})();
+</script>
+</body>
+</html>

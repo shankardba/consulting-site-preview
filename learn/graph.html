@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Graph databases · Data Integration Specialists</title>
+<meta name="description" content="Graph databases store things (dots) and the relationships between them (lines) as equals. When your questions sound like “who is connected to whom?”, nothing else comes close.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../css/site.css">
+<link rel="stylesheet" href="../css/stage.css">
+</head>
+<body data-root="../" data-page="learn">
+<main class="shape graph">
+  <header class="learn-head wrap">
+    <span class="chip"><svg class="glyph" style="width:18px;height:18px" viewBox="0 0 44 44" aria-hidden="true"><path d="M10 12L30 10M10 12L18 32M30 10L34 30M18 32L34 30M30 10L18 32"/><circle class="f" cx="10" cy="12" r="4.5"/><circle class="f" cx="30" cy="10" r="4.5"/><circle class="f" cx="18" cy="32" r="4.5"/><circle class="f" cx="34" cy="30" r="4.5"/></svg>Shape 4 · connections</span>
+    <h1>Graph databases</h1>
+    <p class="lede" style="margin-top:14px">Graph databases store things (dots) and the relationships between them (lines) as equals. When your questions sound like “who is connected to whom?”, nothing else comes close.</p>
+    <nav class="learn-nav" aria-label="Data shapes"><a class="shape sheet" href="spreadsheet.html">Spreadsheets</a><a class="shape rel" href="relational.html">Relational databases</a><a class="shape doc" href="document.html">Document databases</a><a class="shape graph" href="graph.html" aria-current="page">Graph databases</a></nav>
+  </header>
+
+  <section class="wrap" aria-label="Animated explainer">
+    <div class="stage shape graph" tabindex="0" data-scene="graph">
+      <div class="stage-view"></div>
+      <div class="stage-bar">
+        <div class="stage-btns"><button type="button" data-act="prev" aria-label="Previous step">◀</button><button type="button" class="play" data-act="play" aria-label="Play">▶</button><button type="button" data-act="next" aria-label="Next step">▶▶</button></div>
+        <div class="stage-cap" aria-live="polite"></div>
+        <div class="stage-dots"></div>
+      </div>
+    </div>
+    <p class="muted" style="font-size:14px;margin-top:10px">The example data is made up: a small neighbourhood bakery. Use the arrow keys or the dots to step through.</p>
+  </section>
+
+  <section class="block wrap stack">
+    <h2>The short version</h2>
+    <div class="verdict">
+      <div class="card good"><h3>✓ Great for</h3><ul><li>Referral networks and social connections</li><li>Supply chains and product recalls</li><li>Fraud rings: shared phones, cards and addresses</li><li>Recommendations: “people like you also bought…”</li></ul></div>
+      <div class="card bad"><h3>✗ Watch out for</h3><ul><li>Totals, averages and monthly reports</li><li>Simple lists that don’t really have relationships</li><li>Smaller pool of people who know the tools</li><li>Usually an addition to your main database, not a replacement</li></ul></div>
+    </div>
+    <p class="rule">When your questions are about how things connect, such as referrals, recalls, fraud rings and networks, use a graph.</p>
+    <div class="cards">
+      <div class="card"><div class="eyebrow">Common tools</div><p>Neo4j, Amazon Neptune, Memgraph, and graph extensions for Postgres</p></div>
+      <div class="card"><div class="eyebrow">From my work</div><p>I’ve worked hands-on with both Neo4j and Amazon Neptune, including Neptune inside a cloud video pipeline that ingests 12,000+ titles a day.</p></div>
+    </div>
+    <nav class="next-shape" aria-label="Continue"><a class="btn ghost" href="document.html">← Document databases</a><a class="btn" href="index.html#quiz">Test yourself: which shape fits? →</a></nav>
+  </section>
+
+  <section class="block wrap">
+    <div class="cta-band">
+      <div><h3>Not sure which shape your data is?</h3><p class="muted" style="margin-top:6px">A Data Shape Check looks at what you keep, how you use it and where it hurts, then recommends the simplest setup that fits. Fixed price, no obligation to build.</p></div>
+      <a class="btn" href="../start.html?topic=data-shape-check">Book a Data Shape Check</a>
+    </div>
+  </section>
+</main>
+<script src="../js/site.js"></script>
+<script src="../js/stage.js"></script>
+<script src="../js/scenes/graph.js"></script>
+<script>document.querySelectorAll(".stage[data-scene]").forEach(el => new Stage(el, SCENES[el.dataset.scene]));</script>
+</body>
+</html>

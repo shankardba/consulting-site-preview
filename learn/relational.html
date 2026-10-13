@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Relational databases · Data Integration Specialists</title>
+<meta name="description" content="Relational databases split data into tables that each hold one kind of thing, then link them with IDs. It’s been the backbone of business software for fifty years. Here’s why.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../css/site.css">
+<link rel="stylesheet" href="../css/stage.css">
+</head>
+<body data-root="../" data-page="learn">
+<main class="shape rel">
+  <header class="learn-head wrap">
+    <span class="chip"><svg class="glyph" style="width:18px;height:18px" viewBox="0 0 44 44" aria-hidden="true"><rect x="3" y="6" width="16" height="14" rx="2"/><rect x="25" y="24" width="16" height="14" rx="2"/><path d="M19 13h6v18"/><rect class="f" x="3" y="6" width="16" height="4"/><rect class="f" x="25" y="24" width="16" height="4"/></svg>Shape 2 · related tables</span>
+    <h1>Relational databases</h1>
+    <p class="lede" style="margin-top:14px">Relational databases split data into tables that each hold one kind of thing, then link them with IDs. It’s been the backbone of business software for fifty years. Here’s why.</p>
+    <nav class="learn-nav" aria-label="Data shapes"><a class="shape sheet" href="spreadsheet.html">Spreadsheets</a><a class="shape rel" href="relational.html" aria-current="page">Relational databases</a><a class="shape doc" href="document.html">Document databases</a><a class="shape graph" href="graph.html">Graph databases</a></nav>
+  </header>
+
+  <section class="wrap" aria-label="Animated explainer">
+    <div class="stage shape rel" tabindex="0" data-scene="relational">
+      <div class="stage-view"></div>
+      <div class="stage-bar">
+        <div class="stage-btns"><button type="button" data-act="prev" aria-label="Previous step">◀</button><button type="button" class="play" data-act="play" aria-label="Play">▶</button><button type="button" data-act="next" aria-label="Next step">▶▶</button></div>
+        <div class="stage-cap" aria-live="polite"></div>
+        <div class="stage-dots"></div>
+      </div>
+    </div>
+    <p class="muted" style="font-size:14px;margin-top:10px">The example data is made up: a small neighbourhood bakery. Use the arrow keys or the dots to step through.</p>
+  </section>
+
+  <section class="block wrap stack">
+    <h2>The short version</h2>
+    <div class="verdict">
+      <div class="card good"><h3>✓ Great for</h3><ul><li>Customers, orders, invoices, inventory, bookings</li><li>Many people and apps reading and writing at once</li><li>Money and anything else that must never be wrong (transactions)</li><li>Reports that combine several kinds of records (SQL joins)</li></ul></div>
+      <div class="card bad"><h3>✗ Watch out for</h3><ul><li>You design the structure first, and changing it later takes planning</li><li>Records that all look different don’t fit neat columns</li><li>Deep chains of relationships get slow (join after join)</li><li>Needs someone who knows SQL and database care</li></ul></div>
+    </div>
+    <p class="rule">When the same kinds of records repeat and several people or apps share them, use a relational database.</p>
+    <div class="cards">
+      <div class="card"><div class="eyebrow">Common tools</div><p>PostgreSQL, MySQL, SQL Server, Oracle, Amazon Aurora, SQLite</p></div>
+      <div class="card"><div class="eyebrow">From my work</div><p>Over a decade with Oracle (certified), Postgres, SQL Server and Redshift. That includes automating care for 2,000+ databases and moving whole warehouses to the cloud.</p></div>
+    </div>
+    <nav class="next-shape" aria-label="Continue"><a class="btn ghost" href="spreadsheet.html">← Spreadsheets</a><a class="btn" href="document.html">Next: Document databases →</a></nav>
+  </section>
+
+  <section class="block wrap">
+    <div class="cta-band">
+      <div><h3>Not sure which shape your data is?</h3><p class="muted" style="margin-top:6px">A Data Shape Check looks at what you keep, how you use it and where it hurts, then recommends the simplest setup that fits. Fixed price, no obligation to build.</p></div>
+      <a class="btn" href="../start.html?topic=data-shape-check">Book a Data Shape Check</a>
+    </div>
+  </section>
+</main>
+<script src="../js/site.js"></script>
+<script src="../js/stage.js"></script>
+<script src="../js/scenes/relational.js"></script>
+<script>document.querySelectorAll(".stage[data-scene]").forEach(el => new Stage(el, SCENES[el.dataset.scene]));</script>
+</body>
+</html>
