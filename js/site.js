@@ -9,7 +9,7 @@ const BRAND = "Data Integration Specialists";
     ["services","Services","services.html"],
     ["products","Products","products.html"],
     ["demo","Example","demo/index.html"],
-    ["learn","Learn: data shapes","learn/index.html"],
+    ["learn","Data Architectures","learn/index.html"],
     ["how","How I work","how.html"],
     ["about","About","about.html"],
   ];
@@ -25,8 +25,8 @@ const BRAND = "Data Integration Specialists";
   const foot = document.createElement("footer");
   foot.className = "site-foot";
   foot.innerHTML = `<div class="wrap">
-    <div><strong>${BRAND}</strong> <span class="placeholder-note">working name</span><br>Fixed-scope data, web and AI work for small businesses.</div>
-    <div><a href="${root}learn/index.html">Learn</a> · <a href="${root}services.html">Services</a> · <a href="${root}products.html">Products</a> · <a href="${root}start.html">Start a project</a></div>
+    <div><strong>${BRAND}</strong> <span class="placeholder-note">working name</span><br>Fixed-scope data, cloud and web work for small businesses.</div>
+    <div><a href="${root}learn/index.html">Data Architectures</a> · <a href="${root}services.html">Services</a> · <a href="${root}products.html">Products</a> · <a href="${root}start.html">Start a project</a></div>
   </div>`;
   document.body.append(foot);
 })();

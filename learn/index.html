@@ -4,23 +4,12 @@
 <meta charset="utf-8">
 <meta name="robots" content="noindex,nofollow">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Data Shapes · Data Integration Specialists</title>
+<title>Data Architectures · Data Integration Specialists</title>
 <meta name="description" content="Spreadsheets, relational, document and graph databases explained with animated examples: what each is good at, where each struggles, and which fits your data.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="../css/site.css">
 <style>
-.quiz{display:grid;gap:12px}
-.qitem{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;display:grid;gap:10px}
-.qitem .qt{font-weight:600;font-size:18px}
-.qopts{display:flex;gap:8px;flex-wrap:wrap}
-.qopts button{font:600 14px var(--body);padding:8px 12px;border-radius:999px;border:1.5px solid var(--cs);background:var(--surface);color:var(--c);cursor:pointer}
-.qopts button:hover{background:var(--cs)}
-.qopts button.picked{background:var(--c);color:var(--surface);border-color:var(--c)}
-.qopts button.right:not(.picked){border-color:var(--c);border-style:dashed}
-.qfb{font-size:15px;color:var(--muted)}
-.qfb b.y{color:var(--ok)} .qfb b.n{color:var(--bad)}
-.score{font:600 15px var(--mono);color:var(--muted)}
 .shape-cards .card h3{display:flex;gap:12px;align-items:center}
 </style>
 </head>
@@ -29,10 +18,10 @@
   <section class="hero">
     <div class="wrap">
       <div>
-        <div class="eyebrow">Learn · data shapes</div>
+        <div class="eyebrow">Data architectures</div>
         <h1 style="margin-top:12px">Every business has data. Its shape decides the tool.</h1>
-        <p class="lede" style="margin-top:18px">There are four common shapes: rows in a spreadsheet, related tables, flexible documents and connected graphs. Each is brilliant at some jobs and painful at others. Watch them work on the same small bakery, then test yourself.</p>
-        <div class="ctas"><a class="btn" href="spreadsheet.html">Start with spreadsheets →</a><a class="btn ghost" href="#quiz">Take the quiz</a></div>
+        <p class="lede" style="margin-top:18px">There are four common shapes: rows in a spreadsheet, related tables, flexible documents and connected graphs. Each is brilliant at some jobs and painful at others. Watch them work on the same small business.</p>
+        <div class="ctas"><a class="btn" href="spreadsheet.html">Start with spreadsheets →</a><a class="btn ghost" href="#compare">Compare all four</a></div>
       </div>
       <div><div class="morph" aria-hidden="true"></div><div class="morph-keys" aria-label="Show a shape"></div></div>
     </div>
@@ -52,8 +41,8 @@
     </div>
   </section>
 
-  <section class="block wrap stack">
-    <h2>Same bakery, seven jobs</h2>
+  <section class="block wrap stack" id="compare">
+    <h2>Same business, seven jobs</h2>
     <p class="muted">How each shape copes with the everyday jobs a small business actually has.</p>
     <div class="tbl"><table>
       <thead><tr><th>The job</th><th>Spreadsheet</th><th>Relational</th><th>Document</th><th>Graph</th></tr></thead>
@@ -69,13 +58,6 @@
     </table></div>
   </section>
 
-  <section class="block wrap stack" id="quiz">
-    <h2>Which shape fits?</h2>
-    <p class="muted">Pick the best shape for each kind of data. There’s often more than one workable answer; this is the one that fits most naturally.</p>
-    <div class="quiz" id="quiz-list"></div>
-    <p class="score" id="quiz-score" aria-live="polite"></p>
-  </section>
-
   <section class="block wrap stack">
     <h2>The real answer is usually “more than one”</h2>
     <p class="lede">A growing business ends up with a spreadsheet for planning, a database for orders, documents for its website content and sometimes a graph for referrals or recalls. The hard part isn’t picking one shape. It’s making them work together so everyone sees the same truth. That’s data integration, and it’s what I do.</p>
@@ -86,39 +68,5 @@
   </section>
 </main>
 <script src="../js/site.js"></script>
-<script>
-(function(){
-  const NAMES = {sheet:"Spreadsheet", rel:"Relational", doc:"Document", graph:"Graph"};
-  const Q = [
-    ["A monthly household or project budget", "sheet", "One owner, quick math, what-ifs. A spreadsheet is perfect."],
-    ["Headcount and dietary needs for one event", "sheet", "A short-lived list one person manages. No database needed."],
-    ["Patients, their appointments and invoices", "rel", "The same kinds of records repeat and link by ID, and billing must be exact."],
-    ["An online shop’s orders, stock and payments", "rel", "Transactions stop two people buying the last item, and money stays consistent."],
-    ["A catalog where every product has different specs", "doc", "A guitar has string gauge, a mug has capacity. Documents let each item keep its own fields."],
-    ["App user profiles with settings that keep changing", "doc", "New settings appear all the time, and you read one whole profile at once."],
-    ["Thousands of website form submissions with varied fields", "doc", "Each submission is stored whole, with whatever fields that form had."],
-    ["A referral network: who introduced whom", "graph", "The question is the chain of connections, which is exactly what a graph walks."],
-    ["Spotting fraud: accounts sharing phones, cards or addresses", "graph", "Rings of shared details show up as clusters of links."],
-    ["Which products are hit by a supplier’s recall", "graph", "Supplier → ingredient → product → customer is a path query. Relational can do it with more joins."],
-  ];
-  const list = document.getElementById("quiz-list"), score = document.getElementById("quiz-score");
-  const answered = new Map();
-  Q.forEach(([text, ans, why], i) => {
-    const el = document.createElement("div"); el.className = "qitem";
-    el.innerHTML = `<div class="qt"></div><div class="qopts">${Object.keys(NAMES).map(k => `<button type="button" class="shape ${k}" data-k="${k}">${NAMES[k]}</button>`).join("")}</div><div class="qfb" aria-live="polite"></div>`;
-    el.querySelector(".qt").textContent = `${i+1}. ${text}`;
-    el.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
-      el.querySelectorAll("button").forEach(x => x.classList.remove("picked","right"));
-      b.classList.add("picked");
-      el.querySelector(`[data-k="${ans}"]`).classList.add("right");
-      const ok = b.dataset.k === ans; answered.set(i, ok);
-      el.querySelector(".qfb").innerHTML = (ok ? `<b class="y">Yes, ${NAMES[ans]}.</b> ` : `<b class="n">Best fit: ${NAMES[ans]}.</b> `) + why;
-      const right = [...answered.values()].filter(Boolean).length;
-      score.textContent = `${right} of ${answered.size} right` + (answered.size === Q.length ? (right >= 8 ? " · You think like a data architect." : " · Not bad! This is exactly why people hire one.") : "");
-    }));
-    list.append(el);
-  });
-})();
-</script>
 </body>
 </html>
