@@ -35,6 +35,7 @@ const BRAND = "Data Integration Specialists";
 function initMorph(el){
   const W = 300, H = 200, N = 16;
   const C = {sheet:"--sheet", rel:"--rel", doc:"--doc", graph:"--graph"};
+  const DOC_W = 118, DOC_H = 70, DOC_CARDS = [[24,14],[158,14],[24,96],[158,96]];
   const F = {};
   F.sheet = Array.from({length:N}, (_,i) => ({x:32 + (i%4)*60, y:32 + Math.floor(i/4)*34, w:56, h:28, r:2}));
   F.rel = (() => {
@@ -43,14 +44,15 @@ function initMorph(el){
     return out.slice(0,N);
   })();
   F.doc = (() => {
-    const out = [], cards = [[35,22],[160,22],[35,110],[160,110]], bars = [[70,0],[92,1],[56,2],[80,3]];
-    cards.forEach(([cx,cy]) => bars.forEach(([w,j]) => out.push({x:cx+12, y:cy+12+j*15, w, h:8, r:4})));
+    // Cards are DOC_W x DOC_H with 14 units of padding on every side of the bars, centred in the 300x200 box.
+    const out = [], bars = [[64,0],[90,1],[50,2],[78,3]];
+    DOC_CARDS.forEach(([cx,cy]) => bars.forEach(([w,j]) => out.push({x:cx+14, y:cy+8.5+j*15, w, h:8, r:4})));
     return out;
   })();
   const pts = [[40,40],[95,25],[150,55],[210,30],[262,62],[60,100],[120,110],[180,95],[245,120],[30,160],[90,170],[150,155],[205,175],[270,165],[120,60],[200,140]];
   F.graph = pts.map(([x,y]) => ({x:x-8, y:y-8, w:16, h:16, r:8}));
   const edges = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,14],[14,2],[6,7],[7,8],[8,4],[5,9],[9,10],[10,11],[11,6],[11,12],[12,15],[15,7],[12,13],[13,8],[15,8]];
-  const docBg = [[35,22],[160,22],[35,110],[160,110]];
+  const docBg = DOC_CARDS;
 
   el.innerHTML = "";
   const bgs = docBg.map(() => { const d = document.createElement("div"); d.className = "pc bg"; el.append(d); return d; });
@@ -75,7 +77,7 @@ function initMorph(el){
       p.style.transform = `translate(${f.x*s}px,${f.y*s}px)`; p.style.backgroundColor = color;
       p.style.opacity = (k==="rel" && [0,1,6,7,10,11].includes(i)) ? "1" : (k==="rel" ? ".55" : "1"); });
     bgs.forEach((b,i) => { const [x,y] = docBg[i];
-      b.style.width = 110*s+"px"; b.style.height = 76*s+"px"; b.style.borderRadius = 8*s+"px";
+      b.style.width = DOC_W*s+"px"; b.style.height = DOC_H*s+"px"; b.style.borderRadius = 8*s+"px";
       b.style.transform = `translate(${x*s}px,${y*s}px)`;
       b.style.backgroundColor = "transparent"; b.style.boxShadow = `inset 0 0 0 ${Math.max(1,1.5*s)}px ${color}`;
       b.style.opacity = k==="doc" ? "1" : "0"; });
