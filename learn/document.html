@@ -5,7 +5,7 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Document databases · Data Integration Specialists</title>
-<meta name="description" content="Also called “NoSQL” or non-relational. Each record is a self-contained document that can have its own shape, a bit like a filled-in form. Great when no two records look alike.">
+<meta name="description" content="Also called “NoSQL” or non-relational. Each record is a self-contained document that can have its own structure, a bit like a filled-in form. Great when no two records look alike.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="../css/site.css">
@@ -14,10 +14,10 @@
 <body data-root="../" data-page="learn">
 <main class="shape doc">
   <header class="learn-head wrap">
-    <span class="chip"><svg class="glyph" style="width:18px;height:18px" viewBox="0 0 44 44" aria-hidden="true"><path d="M10 4h17l8 8v28H10z"/><path d="M27 4v8h8M15 18h14M15 24h10M15 30h16"/></svg>Shape 3 · flexible documents</span>
+    <span class="chip"><svg class="glyph" style="width:18px;height:18px" viewBox="0 0 44 44" aria-hidden="true"><path d="M10 4h17l8 8v28H10z"/><path d="M27 4v8h8M15 18h14M15 24h10M15 30h16"/></svg>Architecture 3 · flexible documents</span>
     <h1>Document databases</h1>
-    <p class="lede" style="margin-top:14px">Also called “NoSQL” or non-relational. Each record is a self-contained document that can have its own shape, a bit like a filled-in form. Great when no two records look alike.</p>
-    <nav class="learn-nav" aria-label="Data shapes"><a class="shape sheet" href="spreadsheet.html">Spreadsheets</a><a class="shape rel" href="relational.html">Relational databases</a><a class="shape doc" href="document.html" aria-current="page">Document databases</a><a class="shape graph" href="graph.html">Graph databases</a></nav>
+    <p class="lede" style="margin-top:14px">Also called “NoSQL” or non-relational. Each record is a self-contained document that can have its own structure, a bit like a filled-in form. Great when no two records look alike.</p>
+    <nav class="learn-nav" aria-label="Data architectures"><a class="shape sheet" href="spreadsheet.html">Spreadsheets</a><a class="shape rel" href="relational.html">Relational databases</a><a class="shape doc" href="document.html" aria-current="page">Document databases</a><a class="shape graph" href="graph.html">Graph databases</a></nav>
   </header>
 
   <section class="wrap" aria-label="Animated explainer">
@@ -38,18 +38,18 @@
       <div class="card good"><h3>✓ Great for</h3><ul><li>Product catalogs where every item has different specs</li><li>User profiles and settings that keep evolving</li><li>Content, form submissions, event logs</li><li>Apps that read one whole record at a time, at large scale</li></ul></div>
       <div class="card bad"><h3>✗ Watch out for</h3><ul><li>Questions across many documents (totals, reports) are harder</li><li>Copied details drift out of date (a name changed in one place only)</li><li>Fewer built-in rules, so the app has to enforce them</li><li>Easy to make a mess without a plan for how data will be read</li></ul></div>
     </div>
-    <p class="rule">When every record has a different shape, or the shape keeps changing, and you mostly read one record at a time, use documents.</p>
+    <p class="rule">When every record has a different structure, or the structure keeps changing, and you mostly read one record at a time, use documents.</p>
     <div class="cards">
       <div class="card"><div class="eyebrow">Common tools</div><p>MongoDB, Amazon DynamoDB, Google Firestore, Couchbase, JSON columns in Postgres</p></div>
-      <div class="card"><div class="eyebrow">From my work</div><p>I’ve built data lakes where semi-structured files sit in cloud storage and get queried as-is, alongside a SQL warehouse. Each shape does the job it’s good at.</p></div>
+      <div class="card"><div class="eyebrow">From my work</div><p>I’ve built data lakes where semi-structured files sit in cloud storage and get queried as-is, alongside a SQL warehouse. Each architecture does the job it’s good at.</p></div>
     </div>
     <nav class="next-shape" aria-label="Continue"><a class="btn ghost" href="relational.html">← Relational databases</a><a class="btn" href="graph.html">Next: Graph databases →</a></nav>
   </section>
 
   <section class="block wrap">
     <div class="cta-band">
-      <div><h3>Not sure which shape your data is?</h3><p class="muted" style="margin-top:6px">A Data Shape Check looks at what you keep, how you use it and where it hurts, then recommends the simplest setup that fits. Fixed price, no obligation to build.</p></div>
-      <a class="btn" href="../start.html?topic=data-shape-check">Book a Data Shape Check</a>
+      <div><h3>Not sure which architecture fits your data?</h3><p class="muted" style="margin-top:6px">A Data Architecture Check looks at what you keep, how you use it and where it hurts, then recommends the simplest setup that fits. Fixed price, no obligation to build.</p></div>
+      <a class="btn" href="../start.html?topic=data-shape-check">Book a Data Architecture Check</a>
     </div>
   </section>
 </main>

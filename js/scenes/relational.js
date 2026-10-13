@@ -61,7 +61,7 @@ window.SCENES = window.SCENES || {};
           consoleLines(v, [
             `<span class="cm">-- 10:02:31.004  order A: 2 × Baguette</span>`, `<span class="okc">COMMIT  ✓ stock 2 → 0</span>`,
             `<span class="cm">-- 10:02:31.005  order B: 2 × Baguette</span>`, `<span class="err">ROLLBACK  ✗ only 0 left, nothing charged</span>`]); } },
-      { t: "Weak spot: the shape is fixed up front. A custom wedding cake with tiers, flavours and a photo doesn’t fit the columns.",
+      { t: "Weak spot: the structure is fixed up front. A custom wedding cake with tiers, flavours and a photo doesn’t fit the columns.",
         run(v,{instant}){
           const c = consoleLines(v, [
             `<span class="kw">INSERT INTO</span> orders (…, tiers, flavours, topper_photo) <span class="kw">VALUES</span> (…, 3, <span class="str">'lemon, raspberry'</span>, <span class="str">'cake.jpg'</span>);`,

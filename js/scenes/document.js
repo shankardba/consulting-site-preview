@@ -34,13 +34,13 @@ window.SCENES = window.SCENES || {};
     steps: [
       { t: "Some data doesn’t come in neat rows. Every custom cake order is different: tiers here, a dinosaur theme there, a loading dock for the office order.",
         run(v){ qa(v,".jdoc").forEach(d => d.classList.add("on")); } },
-      { t: "A document database stores each order whole, in whatever shape it has, side by side in one collection.",
+      { t: "A document database stores each order whole, in whatever structure it has, side by side in one collection.",
         run(v){ showAll(v); side(v, `<span class="badge good">No columns to plan first</span>`); } },
       { t: "Tomorrow you add pickup lockers. New orders just include a “locker” field. No migration, and old orders keep working.",
         run(v){ showAll(v); addNew(v);
           const k = q(v,'[data-id="1044"] [data-k="locker"]'); k.classList.add("new");
           side(v, `<span class="badge good">New field, zero downtime</span>`); } },
-      { t: "One read gets everything about an order: the cake, the customer, the delivery. That’s why apps and websites love this shape.",
+      { t: "One read gets everything about an order: the cake, the customer, the delivery. That’s why apps and websites love this architecture.",
         run(v){ showAll(v); addNew(v); q(v,'[data-id="1041"]').classList.add("lift");
           side(v, `<span class="badge good">1 read → the whole order</span>`); } },
       { t: "Growing fast? Spread the documents across several servers. Each order lives on one, so adding servers adds capacity.",
@@ -54,7 +54,7 @@ window.SCENES = window.SCENES || {};
         run(v){ showAll(v); addNew(v);
           side(v, `<span class="badge good">customers: “Mrs. Patel-Rao” ✓</span><span class="badge bad">order_1041 still says “Mrs. Patel”</span>`);
           q(v,'[data-id="1041"] [data-k="name"] + .s').classList.add("stale"); } },
-      { t: "Rule of thumb: when every record has a different shape, or the shape keeps changing, and you mostly read one record at a time, use documents.",
+      { t: "Rule of thumb: when every record has a different structure, or the structure keeps changing, and you mostly read one record at a time, use documents.",
         run(v){ showAll(v); addNew(v); q(v,".docs").style.boxShadow = "0 0 0 3px var(--doc)";
           side(v, `<span class="badge good">Catalogs, profiles, content, forms, logs</span>`); } },
     ],
