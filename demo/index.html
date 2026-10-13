@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>From Spreadsheet to App · Data Integration Specialists</title>
+<meta name="description" content="A worked example: a contractor’s job-costing spreadsheet, the mistakes hiding in it, the small app that replaces it, and proof that the numbers match.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../css/site.css">
+<link rel="stylesheet" href="../css/stage.css">
+<link rel="stylesheet" href="demo.css">
+</head>
+<body data-root="../" data-page="demo">
+<main class="shape sheet">
+  <header class="learn-head wrap">
+    <span class="chip">Worked example · made-up business</span>
+    <h1>From spreadsheet to app, with proof.</h1>
+    <p class="lede" style="margin-top:14px">Lantern Street Electric is a made-up four-person electrical contractor. Like many small businesses, it tracks every job’s cost and profit in one spreadsheet. This is what I found in it, what replaced it, and how I showed the new numbers can be trusted.</p>
+    <p class="headline" id="headline"></p>
+    <div class="stats">
+      <div><b id="stat-findings">–</b><span>kinds of mistake found by the audit</span></div>
+      <div><b id="stat-cost">–</b><span id="stat-cost-label">of job cost the workbook never counted</span></div>
+      <div><b id="stat-unbilled">–</b><span>of finished work never invoiced</span></div>
+    </div>
+  </header>
+
+  <section class="wrap" id="demo-tabs">
+    <div class="tabs" role="tablist" aria-label="Demo steps">
+      <button role="tab" id="tab-workbook" data-tab="workbook" aria-controls="panel-workbook" aria-selected="true"><span>1</span>The workbook</button>
+      <button role="tab" id="tab-audit" data-tab="audit" aria-controls="panel-audit" aria-selected="false" tabindex="-1"><span>2</span>The audit</button>
+      <button role="tab" id="tab-app" data-tab="app" aria-controls="panel-app" aria-selected="false" tabindex="-1"><span>3</span>The app</button>
+      <button role="tab" id="tab-backtest" data-tab="backtest" aria-controls="panel-backtest" aria-selected="false" tabindex="-1"><span>4</span>The back-test</button>
+    </div>
+
+    <div role="tabpanel" id="panel-workbook" aria-labelledby="tab-workbook" class="panel">
+      <p class="panel-intro">This is the real file: four sheets, with working formulas. It looks fine. Every job shows a healthy profit. <a id="xlsx-link" href="#" download>Download the workbook (.xlsx)</a> and look for yourself.</p>
+      <div class="sheetbar">
+        <div class="seg" id="sheet-tabs" aria-label="Sheets"></div>
+        <label class="toggle"><input type="checkbox" id="marks"> Show what the audit found</label>
+      </div>
+      <div id="sheet"></div>
+      <p class="muted small" id="marks-note" hidden>Faded rows are entries the job totals never add up.</p>
+      <p class="next"><button type="button" class="btn" data-goto="audit">See what the audit found →</button></p>
+    </div>
+
+    <div role="tabpanel" id="panel-audit" aria-labelledby="tab-audit" class="panel" hidden>
+      <p class="panel-intro">A Workbook Audit reads every cell and formula and checks them against each other. None of these mistakes is unusual, and none shows up by looking at the sheet. Each one is priced, so you know which matter.</p>
+      <div id="findings" class="findings"></div>
+      <p class="rule" id="audit-sum"></p>
+      <p class="next"><button type="button" class="btn" data-goto="app">See the app that replaces it →</button></p>
+    </div>
+
+    <div role="tabpanel" id="panel-app" aria-labelledby="tab-app" class="panel" hidden>
+      <p class="panel-intro">The same jobs, moved into a small app. Each customer is stored once. Rates come from one table. Totals can’t skip rows, and bad entries are refused. This one is live, so try it. <button type="button" class="linkbtn" id="app-reset">Reset the demo data</button></p>
+      <div class="tiles" id="app-tiles"></div>
+      <div class="appgrid">
+        <div class="tbl"><table class="jobs"><thead><tr><th>Job</th><th>Work</th><th>Quote</th><th>Cost</th><th>Profit</th><th>Margin</th></tr></thead><tbody id="app-jobs"></tbody></table></div>
+        <div class="card detail" id="app-detail" aria-live="polite"></div>
+      </div>
+      <div class="card" style="margin-top:16px"><h3>Customers</h3><p class="muted small">Rename one here and every job that belongs to it follows. In the workbook, the dental practice appeared under three spellings.</p><ul class="custs" id="app-customers"></ul></div>
+      <p class="next"><button type="button" class="btn" data-goto="backtest">See the proof the numbers match →</button></p>
+    </div>
+
+    <div role="tabpanel" id="panel-backtest" aria-labelledby="tab-backtest" class="panel" hidden>
+      <p class="panel-intro">Before anyone trusts a new system, it has to agree with the old one. A back-test runs both on the same data and compares every job.</p>
+      <h3>Step 1 · Same mistakes in, same numbers out</h3>
+      <p class="muted">First the app’s calculations are run with all the workbook’s mistakes deliberately left in. If the two agree exactly, the app understands the workbook’s logic.</p>
+      <div class="tbl"><table><thead><tr><th>Job</th><th>Workbook shows</th><th>App calculates</th><th>Difference</th><th></th></tr></thead><tbody id="bt-same"></tbody></table></div>
+      <p class="rule" id="bt-same-sum"></p>
+      <h3 style="margin-top:32px">Step 2 · Mistakes fixed, every change explained</h3>
+      <p class="muted">Then the mistakes are corrected one at a time. Each job’s cost either stays the same or moves by an amount that is fully accounted for.</p>
+      <div class="tbl"><table><thead><tr><th>Job</th><th>Workbook cost · margin</th><th>Corrected cost · margin</th><th>Change</th><th>Why</th></tr></thead><tbody id="bt-fixed"></tbody></table></div>
+      <p class="rule" id="bt-fixed-sum"></p>
+    </div>
+  </section>
+
+  <section class="block wrap" style="margin-top:56px">
+    <div class="cta-band">
+      <div><h3>Wondering what’s hiding in your spreadsheet?</h3><p class="muted" style="margin-top:6px">A Workbook Audit gives you this same report for your own file: every finding, where it is, and what it costs. Fixed price, useful even if you change nothing else.</p></div>
+      <a class="btn" href="../start.html?topic=spreadsheet-app">Book a Workbook Audit</a>
+    </div>
+    <p class="muted small" style="margin-top:14px">Lantern Street Electric, its customers, staff and figures are invented for this example. Changes you make in the app stay in your browser and reset when you reload.</p>
+  </section>
+</main>
+<script src="../js/site.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

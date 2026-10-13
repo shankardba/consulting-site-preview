@@ -8,6 +8,7 @@ const BRAND = "Data Integration Specialists";
   const links = [
     ["services","Services","services.html"],
     ["products","Products","products.html"],
+    ["demo","Example","demo/index.html"],
     ["learn","Learn: data shapes","learn/index.html"],
     ["how","How I work","how.html"],
     ["about","About","about.html"],

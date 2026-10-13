@@ -1,0 +1,80 @@
+/* Spreadsheet-to-app demo. Builds on site.css tokens and the .xl sheet styles in stage.css. */
+.small{font-size:14px}
+.pos{color:var(--ok)} .neg{color:var(--bad)}
+.sr{position:absolute;left:-10000px}
+.headline{font:600 clamp(20px,2.6vw,26px)/1.35 var(--display);margin-top:26px;padding:18px 22px;background:var(--surface);border-left:4px solid var(--sheet);border-radius:0 var(--radius) var(--radius) 0;max-width:62ch}
+.headline b{color:var(--bad)}
+.headline b:first-child{color:inherit}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-top:26px}
+.stats div{border-top:2px solid var(--ink);padding-top:10px}
+.stats b{display:block;font:700 34px/1.1 var(--display);font-variant-numeric:tabular-nums}
+.stats span{color:var(--muted);font-size:15px}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:2px solid var(--line);margin-top:8px}
+.tabs button{font:600 16px var(--body);background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:12px 14px;color:var(--muted);cursor:pointer;display:flex;gap:8px;align-items:center}
+.tabs button span{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--surface-2);font:700 13px var(--mono)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--sheet)}
+.tabs button[aria-selected="true"] span{background:var(--sheet);color:var(--surface)}
+.panel{padding-top:22px}
+.panel-intro{max-width:72ch;margin-bottom:18px}
+.panel h3{margin-bottom:6px}
+.next{margin-top:22px}
+.linkbtn{background:none;border:0;padding:0;font:inherit;color:var(--brand);text-decoration:underline;cursor:pointer}
+
+.sheetbar{display:flex;gap:12px 20px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:10px}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.seg button{font:600 14px var(--mono);padding:7px 12px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:6px 6px 0 0;cursor:pointer}
+.seg button[aria-pressed="true"]{color:var(--sheet);border-color:var(--sheet);border-bottom-width:3px}
+.toggle{display:flex;gap:8px;align-items:center;font-weight:600;cursor:pointer}
+.toggle input{width:18px;height:18px;accent-color:var(--sheet)}
+.sheet-scroll{max-height:440px;overflow:auto}
+.sheet-scroll table{min-width:760px}
+.sheet-scroll thead th{position:sticky;top:0;z-index:1}
+.xl tr.uncounted td:not(.rn){opacity:.38}
+.xl td[title]{cursor:default}
+
+.findings{display:grid;gap:10px;margin-bottom:18px}
+.finding{display:grid;grid-template-columns:minmax(0,1fr) minmax(200px,auto);gap:10px 24px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+.finding h3{font-size:18px;margin-bottom:4px}
+.f-side{text-align:right;display:grid;gap:6px;align-content:start}
+.f-impact{font-size:16px}
+.f-impact b{font:700 20px var(--mono);font-variant-numeric:tabular-nums}
+@media (max-width:640px){.finding{grid-template-columns:minmax(0,1fr)}.f-side{text-align:left}}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;display:grid;gap:2px}
+.tile span{color:var(--muted);font-size:14px}
+.tile b{font:700 24px var(--display);font-variant-numeric:tabular-nums}
+.tile.warn{border-color:var(--bad)} .tile.warn b{color:var(--bad)}
+.appgrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:960px){.appgrid{grid-template-columns:minmax(0,1fr)}}
+table.jobs{min-width:560px}
+table.jobs tr[data-job]{cursor:pointer}
+table.jobs tr[data-job]:hover td{background:var(--surface-2)}
+table.jobs tr.sel td{background:var(--sheet-soft)}
+.tbl td.num,.tbl th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:14px;white-space:nowrap}
+.pill{display:inline-block;font:600 11px/1 var(--mono);padding:4px 7px;border-radius:999px;background:var(--surface-2);color:var(--muted);white-space:nowrap;margin-top:3px}
+.pill.done{background:var(--ok-soft);color:var(--ok)}
+.pill.alert{background:var(--bad-soft);color:var(--bad)}
+.mbar{height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;width:80px}
+.mbar i{display:block;height:100%;background:var(--sheet)}
+.mbar.low i{background:var(--warn)}
+.detail{gap:14px}
+.d-head{display:flex;gap:12px 20px;flex-wrap:wrap;justify-content:space-between}
+.d-nums{display:grid;gap:2px;text-align:right;font-size:14px;color:var(--muted)}
+.d-nums b{font-family:var(--mono);color:var(--ink)}
+.d-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.detail h4{margin:0 0 6px;font:600 13px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.mini{max-height:170px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.mini table{border-collapse:collapse;width:100%;font-size:13px}
+.mini td{padding:5px 8px;border-bottom:1px solid var(--line)}
+.mini td.num{text-align:right;font-family:var(--mono);white-space:nowrap}
+.alertbar{background:var(--bad-soft);border-radius:6px;padding:10px 12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.addform{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px 10px;align-items:end;border-top:1px solid var(--line);padding-top:12px}
+.addform h4,.addform p{grid-column:1/-1;margin:0}
+.addform label{display:grid;gap:4px;font-size:13px;font-weight:600}
+.addform input,.addform select{font:15px var(--body);padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);min-width:0;width:100%}
+.formmsg{font-weight:600;min-height:1.4em}
+.custs{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.custs li{display:grid;gap:4px}
+.custs input{font:600 16px var(--body);padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);width:100%}
