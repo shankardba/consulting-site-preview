@@ -19,14 +19,15 @@ const BRAND = "Data Integration Specialists";
     <a class="wordmark" href="${root}index.html"><span class="glyphs" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>${BRAND}</span></a>
     <nav class="site-nav" aria-label="Main">${links.map(([id,label,href]) =>
       `<a href="${root}${href}"${page===id?' aria-current="page"':""}>${label}</a>`).join("")}</nav>
-    <a class="btn small" href="${root}start.html">Start a project</a></div>`;
+    <div class="head-actions"><a class="btn small" href="${root}start.html">Start a project</a>
+    <a class="btn ghost small" href="${root}login.html"${page==="login"||page==="portal"?' aria-current="page"':""}>Client login</a></div></div>`;
   document.body.prepend(head);
 
   const foot = document.createElement("footer");
   foot.className = "site-foot";
   foot.innerHTML = `<div class="wrap">
     <div><strong>${BRAND}</strong> <span class="placeholder-note">working name</span><br>Fixed-scope data, cloud and web work for small businesses.</div>
-    <div><a href="${root}learn/index.html">Data Architectures</a> · <a href="${root}services.html">Services</a> · <a href="${root}products.html">Products</a> · <a href="${root}start.html">Start a project</a></div>
+    <div><a href="${root}learn/index.html">Data Architectures</a> · <a href="${root}services.html">Services</a> · <a href="${root}products.html">Products</a> · <a href="${root}start.html">Start a project</a> · <a href="${root}login.html">Client login</a></div>
   </div>`;
   document.body.append(foot);
 })();

@@ -82,7 +82,7 @@
   f.addEventListener("submit", async e => {
     e.preventDefault();
     if(!f.name.value.trim()){ say("Please add your name.", true); f.name.focus(); return; }
-    if(!f.email.value || !f.email.validity.valid){ say("Please add a valid email so I can reply.", true); f.email.focus(); return; }
+    if(!f.email.value || !f.email.validity.valid){ say("Please add a valid email so we can reply.", true); f.email.focus(); return; }
     const data = Object.fromEntries(new FormData(f));
     data.startedAt = startedAt; data.page = location.pathname + location.search;
     data.turnstileToken = f.querySelector('[name="cf-turnstile-response"]')?.value || "";

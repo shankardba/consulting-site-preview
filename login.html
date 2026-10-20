@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Client login · Data Integration Specialists</title>
+<meta name="description" content="Sign in to see your project’s status, progress reports and history.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/site.css">
+<link rel="stylesheet" href="css/portal.css">
+<!-- share -->
+<link rel="icon" href="img/logo.svg" type="image/svg+xml">
+<link rel="icon" href="img/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta name="theme-color" content="#173f73">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Data Integration Specialists">
+<meta property="og:title" content="Client login">
+<meta property="og:description" content="Sign in to see your project’s status, progress reports and history.">
+<meta property="og:url" content="https://shankardba.github.io/consulting-site-preview/login.html">
+<meta property="og:image" content="https://shankardba.github.io/consulting-site-preview/img/og-image.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Data Integration Specialists: fixed-scope data, cloud and web work for small businesses">
+<meta name="twitter:card" content="summary_large_image">
+<!-- /share -->
+</head>
+<body data-root="" data-page="login">
+<main class="login-main wrap">
+  <section class="login-card card">
+    <div class="eyebrow">Client portal</div>
+    <h1>Sign in</h1>
+    <p class="muted">See where your project stands, read every progress report, and find your project history in one place.</p>
+    <form class="form" id="login" novalidate>
+      <label>Email<input type="email" name="email" autocomplete="username" required></label>
+      <label>Password<input type="password" name="password" autocomplete="current-password" required></label>
+      <p class="status" id="status" role="alert" hidden></p>
+      <button class="btn" type="submit" id="go">Sign in</button>
+    </form>
+    <p class="muted small">Not a client yet? <a href="start.html">Start a project</a>. Your login arrives once your proposal is accepted.</p>
+  </section>
+</main>
+<script src="js/site.js"></script>
+<script>
+(async function(){
+  const f = document.getElementById("login"), st = document.getElementById("status"), go = document.getElementById("go");
+  const say = (msg, bad) => { st.hidden = false; st.textContent = msg; st.style.background = bad ? "var(--bad-soft)" : "var(--warn-soft)"; };
+  const PREVIEW = "Preview only: client login runs on the live site, not on this preview copy.";
+  try {
+    const r = await fetch("/api/session", { cache: "no-store" });
+    if (r.ok && (await r.json()).signedIn) { location.replace("portal.html"); return; }
+  } catch {}
+  if (new URLSearchParams(location.search).has("expired")) say("Please sign in again to continue.");
+  f.addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!f.email.value || !f.email.validity.valid) { say("Please enter your email.", true); f.email.focus(); return; }
+    if (!f.password.value) { say("Please enter your password.", true); f.password.focus(); return; }
+    go.disabled = true; go.textContent = "Signing in…"; st.hidden = true;
+    try {
+      const res = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: f.email.value, password: f.password.value }) });
+      if ([404, 405, 501].includes(res.status)) { say(PREVIEW); return; }
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok) { say(out.error || "Something went wrong. Please try again.", true); f.password.select(); return; }
+      location.replace("portal.html");
+    } catch { say("Couldn’t reach the server. Check your connection and try again.", true); }
+    finally { go.disabled = false; go.textContent = "Sign in"; }
+  });
+})();
+</script>
+</body>
+</html>
