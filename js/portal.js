@@ -41,7 +41,7 @@ function render() {
   el.innerHTML = `
     <header class="portal-head">
       <div><div class="eyebrow">Client portal</div><h1>${first ? `Welcome back, ${esc(first)}` : "Your projects"}</h1></div>
-      <button class="btn ghost small" id="logout" type="button">Sign out</button>
+      <div class="row-btns">${user.admin ? `<a class="btn small" href="admin.html">Admin</a>` : ""}<button class="btn ghost small" id="logout" type="button">Sign out</button></div>
     </header>
     ${projects.some((x) => x.sample) ? `<p class="sample-note">Sample projects: the business, people and figures are invented so you can see how the portal works.</p>` : ""}
     ${projects.length ? `<div class="proj-list" role="tablist" aria-label="Your projects">${projects.map(projTab).join("")}</div>` : `<div class="card portal-msg"><p>No projects yet. Once a proposal is accepted, it appears here.</p></div>`}

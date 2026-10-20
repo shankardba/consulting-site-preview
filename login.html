@@ -51,7 +51,8 @@
   const PREVIEW = "Preview only: client login runs on the live site, not on this preview copy.";
   try {
     const r = await fetch("/api/session", { cache: "no-store" });
-    if (r.ok && (await r.json()).signedIn) { location.replace("portal.html"); return; }
+    const me = r.ok ? await r.json() : {};
+    if (me.signedIn) { location.replace(me.admin ? "admin.html" : "portal.html"); return; }
   } catch {}
   if (new URLSearchParams(location.search).has("expired")) say("Please sign in again to continue.");
   f.addEventListener("submit", async e => {
@@ -65,7 +66,7 @@
       if ([404, 405, 501].includes(res.status)) { say(PREVIEW); return; }
       const out = await res.json().catch(() => ({}));
       if (!res.ok) { say(out.error || "Something went wrong. Please try again.", true); f.password.select(); return; }
-      location.replace("portal.html");
+      location.replace(out.admin ? "admin.html" : "portal.html");
     } catch { say("Couldn’t reach the server. Check your connection and try again.", true); }
     finally { go.disabled = false; go.textContent = "Sign in"; }
   });

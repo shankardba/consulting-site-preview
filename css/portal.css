@@ -79,3 +79,4 @@
 .price-list small{font-weight:500;color:var(--muted)}
 .price-list em{grid-column:1/-1;font-style:normal;font-size:13px;color:var(--muted)}
 @media (max-width:640px){.proj{padding:18px}.proj-top{flex-direction:column}.stepper{font-size:12px}.stepper li{font-size:12px}}
+.row-btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}

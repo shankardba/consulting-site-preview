@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Admin · Data Integration Specialists</title>
+<meta name="description" content="Review requests, send quotes and post project updates.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/site.css">
+<link rel="stylesheet" href="css/portal.css">
+<link rel="stylesheet" href="css/admin.css">
+<!-- share -->
+<link rel="icon" href="img/logo.svg" type="image/svg+xml">
+<link rel="icon" href="img/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta name="theme-color" content="#173f73">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Data Integration Specialists">
+<meta property="og:title" content="Admin">
+<meta property="og:description" content="Review requests, send quotes and post project updates.">
+<meta property="og:url" content="https://shankardba.github.io/consulting-site-preview/admin.html">
+<meta property="og:image" content="https://shankardba.github.io/consulting-site-preview/img/og-image.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Data Integration Specialists: fixed-scope data, cloud and web work for small businesses">
+<meta name="twitter:card" content="summary_large_image">
+<!-- /share -->
+</head>
+<body data-root="" data-page="admin">
+<main id="admin" class="wrap portal admin" aria-busy="true">
+  <p class="muted">Loading…</p>
+</main>
+<p id="toast" class="toast" role="status" aria-live="polite" hidden></p>
+<dialog id="new-dialog" class="adm-dialog">
+  <form method="dialog" id="new-form" class="form">
+    <h2>New project</h2>
+    <p class="muted small">For a request that came in by email or phone. Website requests are added automatically.</p>
+    <label>Client email<input name="owner" type="email" required autocomplete="off"></label>
+    <label>Business<input name="business" autocomplete="off"></label>
+    <label>Project title<input name="title" required autocomplete="off"></label>
+    <label>Service<input name="service" list="services" autocomplete="off"></label>
+    <label>What they asked for<textarea name="summary" rows="3"></textarea></label>
+    <label>Request date<input name="proposed" type="date"></label>
+    <p class="status" id="new-status" hidden></p>
+    <div class="row-btns"><button class="btn" value="create">Add project</button><button class="btn ghost" value="cancel" formnovalidate>Cancel</button></div>
+  </form>
+</dialog>
+<datalist id="services">
+  <option value="Spreadsheet to App"><option value="Workbook Audit"><option value="AWS Review"><option value="Automation">
+  <option value="Knowledge Assistant"><option value="Website"><option value="Learning App"><option value="Advisor retainer">
+  <option value="Add-on: Forms"><option value="Add-on: Search basics"><option value="Care plan">
+</datalist>
+<script src="js/site.js"></script>
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>
