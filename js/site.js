@@ -9,6 +9,7 @@ const BRAND = "Data Integration Specialists";
     ["services","Services","services.html"],
     ["products","Products","products.html"],
     ["demo","Example","demo/index.html"],
+    ["work","Work","work.html"],
     ["learn","Data Architectures","learn/index.html"],
     ["how","How we work","how.html"],
     ["about","About","about.html"],
@@ -27,7 +28,7 @@ const BRAND = "Data Integration Specialists";
   foot.className = "site-foot";
   foot.innerHTML = `<div class="wrap">
     <div><strong>${BRAND}</strong> <span class="placeholder-note">working name</span><br>Fixed-scope data, cloud and web work for small businesses.</div>
-    <div><a href="${root}learn/index.html">Data Architectures</a> · <a href="${root}services.html">Services</a> · <a href="${root}products.html">Products</a> · <a href="${root}start.html">Start a project</a> · <a href="${root}login.html">Client login</a></div>
+    <div><a href="${root}learn/index.html">Data Architectures</a> · <a href="${root}services.html">Services</a> · <a href="${root}products.html">Products</a> · <a href="${root}work.html">Work</a> · <a href="${root}start.html">Start a project</a> · <a href="${root}login.html">Client login</a></div>
   </div>`;
   document.body.append(foot);
 })();

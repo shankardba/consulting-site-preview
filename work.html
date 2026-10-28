@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Work · Data Integration Specialists</title>
+<meta name="description" content="Case study: three decades of volunteer stream surveys, enriched with eight public datasets to show what shapes stream health and where to act next.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="css/site.css">
+<style>
+.sec{padding-block:36px;border-top:1px solid var(--line)}
+.sec h2{font-size:30px;margin-bottom:10px}
+.sec > p{max-width:68ch}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:20px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+.stat b{display:block;font:700 30px/1.1 var(--display);color:var(--brand);font-variant-numeric:tabular-nums}
+.stat span{font-size:14px;color:var(--muted)}
+.case{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--sheet);border-radius:var(--radius);padding:26px;display:grid;gap:14px}
+.case h2{font-size:28px}
+.kicker{font:600 13px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.flow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1.1fr) auto minmax(0,1fr);gap:14px;align-items:center;margin-top:22px}
+.flow .node{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;min-width:0}
+.flow .node h3{font-size:18px;margin-bottom:6px}
+.flow .node ul{margin:0;padding-left:18px;font-size:15px;display:grid;gap:3px}
+.flow .node.core{border-color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand)}
+.flow .arrow{font:700 24px var(--display);color:var(--muted);text-align:center}
+@media (max-width:860px){.flow{grid-template-columns:minmax(0,1fr)}.flow .arrow{transform:rotate(90deg)}}
+.found{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:18px}
+.found .card b{font:700 26px/1.1 var(--display);color:var(--brand)}
+.found .card .src{font:500 12px var(--mono);color:var(--muted)}
+</style>
+<!-- share -->
+<link rel="icon" href="img/logo.svg" type="image/svg+xml">
+<link rel="icon" href="img/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta name="theme-color" content="#173f73">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Data Integration Specialists">
+<meta property="og:title" content="Work">
+<meta property="og:description" content="Case study: three decades of volunteer stream surveys, enriched with eight public datasets to show what shapes stream health and where to act next.">
+<meta property="og:url" content="https://shankardba.github.io/consulting-site-preview/work.html">
+<meta property="og:image" content="https://shankardba.github.io/consulting-site-preview/img/og-image.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Data Integration Specialists: fixed-scope data, cloud and web work for small businesses">
+<meta name="twitter:card" content="summary_large_image">
+<!-- /share -->
+</head>
+<body data-root="" data-page="work">
+<main>
+<header class="learn-head wrap"><div class="eyebrow">Work</div>
+<h1 style="margin-top:12px">Records mean more with context.</h1>
+<p class="lede">Most organisations hold years of records collected for one purpose. Joined to the right public data, the same records can answer new questions: what's driving the results, how far to trust them, and where to act next.</p>
+</header>
+
+<section class="wrap" style="padding-bottom:12px">
+<article class="case">
+  <div class="kicker">Case study · conservation nonprofit</div>
+  <h2>Three decades of volunteer stream surveys, put to work</h2>
+  <p>The Izaak Walton League of America's Save Our Streams volunteers have sampled stream insects, salt and nitrate across the country since the 1990s. The records were public but hard to use: six survey types, forms that changed over the years, and home test sites mixed in with field sites. We cleaned and protected the data, joined it to eight public datasets, and built an interactive explorer the League can use.</p>
+  <div class="stats" style="margin-top:4px">
+    <div class="stat"><b>88,000+</b><span>survey records, 1994–2026</span></div>
+    <div class="stat"><b>20,000+</b><span>sites, privacy rules applied first</span></div>
+    <div class="stat"><b>8</b><span>public datasets joined in</span></div>
+  </div>
+  <p><a class="btn" href="https://shankardba.github.io/iwla-river/" target="_blank" rel="noopener">Explore the live analysis ↗</a></p>
+</article>
+</section>
+
+<section class="sec wrap">
+<h2>How we enriched one dataset with eight others</h2>
+<p>Volunteer surveys say what a stream looks like on one day. They can't say why. We matched every survey to the watershed it drains, the date it was taken and the nearest professional sites, then pulled in what public agencies already know about that place and time.</p>
+<div class="flow" aria-label="How the datasets were joined">
+  <div class="node"><h3>Volunteer surveys</h3><ul><li>Stream insects and scores</li><li>Salt and nitrate tests</li><li>Water temperature, habitat</li></ul></div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="node core"><h3>Matched on three keys</h3><ul><li><b>Place:</b> the small watershed each site drains to</li><li><b>Time:</b> the survey day, or within a week</li><li><b>Distance:</b> professional sites within 1 km</li></ul></div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="node"><h3>Context it gained</h3><ul><li>River flow that day</li><li>Paved area, 1985–2025</li><li>Permits, listings, mines, income</li></ul></div>
+</div>
+
+<div class="tbl" style="margin-top:22px"><table>
+  <thead><tr><th>Public dataset</th><th>What it added</th><th>How it was matched</th></tr></thead>
+  <tbody>
+    <tr><td><b>USGS river gauges</b></td><td>How high or low the stream was on the survey day</td><td>Same small watershed (or the next level up), same day</td></tr>
+    <tr><td><b>Water Quality Portal</b> (EPA and USGS)</td><td>Professional agency salt readings, to check volunteer tests</td><td>Same small watershed, within 7 days</td></tr>
+    <tr><td><b>USGS land cover</b></td><td>Paved area in each watershed, every five years from 1985 to 2025</td><td>Watershed and survey year</td></tr>
+    <tr><td><b>EPA watershed profiles</b></td><td>Forest, farmland, urban land and population upstream of each site</td><td>The stream segment each site sits on</td></tr>
+    <tr><td><b>EPA discharge permits</b></td><td>Permitted dischargers and serious violations</td><td>Small watershed</td></tr>
+    <tr><td><b>EPA impaired-waters listings</b></td><td>Waters officially listed for salt, biology and other problems</td><td>Small watershed</td></tr>
+    <tr><td><b>USGS mine features</b></td><td>Historic mines and their drainage risk</td><td>Small watershed</td></tr>
+    <tr><td><b>US Census</b></td><td>Income and population, to check who gets monitored</td><td>Small watershed</td></tr>
+  </tbody>
+</table></div>
+<p class="muted" style="margin-top:12px">Plus rainfall in the week before each survey, and two professional biology survey programmes as a benchmark. Only watershed codes were sent to outside services, never site locations.</p>
+</section>
+
+<section class="sec wrap">
+<h2>What the joined data showed</h2>
+<p>None of these findings is visible in the volunteer records alone. Each one needed at least one outside dataset.</p>
+<div class="found">
+  <div class="card"><b>27th vs 73rd</b><p>Percentile stream score for urban, paved sites against forested uplands. Paved area is the strongest single driver.</p><span class="src">land cover + watershed profiles</span></div>
+  <div class="card"><b>157 vs 66 mg/L</b><p>Winter salt in watersheds officially listed for salt, against all others.</p><span class="src">impaired-waters listings</span></div>
+  <div class="card"><b>0.71</b><p>Agreement between volunteer and professional stream ratings at sites within 1 km. Volunteers rate a little generously, and now there's a fair correction.</p><span class="src">professional survey benchmark</span></div>
+  <div class="card"><b>134</b><p>High-need watersheds with no survey site that are within 25 km of active volunteers: the next places to send them.</p><span class="src">permits + listings + census + land cover</span></div>
+</div>
+</section>
+
+<section class="sec wrap">
+<h2>Privacy came first</h2>
+<p>Many salt and nitrate kits are tested at volunteers' homes. Before any analysis, home sites got a generic label and their locations were rounded to about a kilometre, and personal details were never copied. Data problems were reported to the League rather than quietly fixed: blank tests recorded as zero, the same state written two ways, and one salt reading far beyond anything physically possible.</p>
+</section>
+
+<section class="wrap" style="padding-block:24px 64px"><div class="cta-band"><p><b>Have records that would mean more with context?</b> Sales by store, readings by sensor, inspections by site: we'll show you what they can answer once they're joined to the right data.</p><a class="btn" href="start.html">Start a project</a></div></section>
+</main>
+<script src="js/site.js"></script>
+</body>
+</html>
