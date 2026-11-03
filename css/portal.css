@@ -142,3 +142,14 @@
 .inv-pay .muted{width:100%;font-size:13px}
 .inv-declined{grid-column:1/-1;color:var(--bad);font-size:13px;margin:0}
 .tester-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--surface-2);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;margin:0 0 14px;font-size:14px}
+/* Account page and dev outbox */
+.acct-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:16px}
+.acct-grid .card{display:grid;gap:12px;align-content:start;padding:22px}
+.acct-grid h2{font-size:20px;margin:0}
+.acct-grid .btn{justify-self:start}
+.form label .muted.small{display:block;font-weight:400;margin-top:4px}
+.ob-mail{display:grid;gap:6px;padding:18px 20px;margin-top:12px}
+.ob-top{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:space-between}
+.ob-mail p{margin:0}
+.ob-text{white-space:pre-wrap;word-break:break-word;font:14px/1.5 var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;margin:4px 0 0}
+.ob-html{width:100%;height:460px;border:1px solid var(--line);border-radius:8px;background:#fff;margin-top:8px}

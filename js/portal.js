@@ -54,7 +54,7 @@ function render() {
   el.innerHTML = `
     <header class="portal-head">
       <div><div class="eyebrow">Client portal</div><h1>${first ? `Welcome back, ${esc(first)}` : "Your projects"}</h1></div>
-      <div class="row-btns">${user.admin ? `<a class="btn small" href="admin.html">Admin</a>` : ""}<button class="btn ghost small" id="logout" type="button">Sign out</button></div>
+      <div class="row-btns">${user.admin ? `<a class="btn small" href="admin.html">Admin</a>` : ""}<a class="btn ghost small" href="account.html">Your account</a><button class="btn ghost small" id="logout" type="button">Sign out</button></div>
     </header>
     ${user.tester ? testerBar() : ""}
     ${projects.some((x) => x.test) ? `<p class="sample-note">Test data: your real projects with made-up prices, invoices and payments. Only your login can see them.</p>` : ""}

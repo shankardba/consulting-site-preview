@@ -96,9 +96,12 @@ function render() {
       <div><div class="eyebrow">Admin</div><h1>Projects</h1>${summary()}</div>
       <div class="row-btns"><button class="btn small" id="new-btn" type="button">New project</button>
         <a class="btn ghost small" href="portal.html">Client view</a>
+        ${meta.outbox ? `<a class="btn ghost small" href="outbox.html">Dev outbox</a>` : ""}
+        <a class="btn ghost small" href="account.html">Your account</a>
         <button class="btn ghost small" id="logout" type="button">Sign out</button></div>
     </header>
     ${toConfirm()}
+    ${accountsCard()}
     ${testersCard()}
     <div class="adm-views" role="tablist" aria-label="Filter projects">${VIEWS.map(([id, label, f]) => {
       const n = projects.filter(f).length;
@@ -128,6 +131,7 @@ function editor(p) {
           ${p.acceptedBy ? `<p class="muted small">Quote accepted online by ${esc(p.acceptedBy)} on ${day(p.dates.accepted)}${p.stage === "approved" ? ". Moves into Discovery when the first payment arrives." : "."}</p>` : ""}</div>
         ${pill(p.status)}
       </div>
+      ${loginLine(p)}
       ${actions(p)}
     </div>
     ${BILLABLE.includes(p.status) || p.invoices.length ? invoicesCard(p) : ""}
@@ -135,6 +139,16 @@ function editor(p) {
     ${p.status !== "declined" ? postForm(p) : ""}
     ${historyCard(p)}
     ${details(p)}`;
+}
+
+// Does the project's client have a login yet? Offer "Send login" when they don't (or haven't set it up).
+function loginLine(p) {
+  if (p.sandbox) return "";
+  const u = account(p.owner);
+  if (u?.status === "active") return "";
+  const label = u?.status === "invited" ? "Resend login invite" : "Send login";
+  return `<p class="muted small adm-login">${u ? "Invited, not set up yet." : "This client has no login yet."}
+    <button type="button" class="btn ghost small" data-send-login="${esc(p.id)}">${label}</button></p>`;
 }
 
 function actions(p) {
@@ -274,12 +288,48 @@ function toConfirm() {
     </form>`).join("")}</section>`;
 }
 
+// Logins: invite a client or tester, resend a pending invite. Email goes to the dev outbox until a service is chosen.
+const ROLE = { admin: "Admin", client: "Client", tester: "Tester" };
+const USTATUS = { active: ["Active", "active"], invited: ["Invited", "review"], disabled: ["Disabled", "muted"] };
+const sentNote = () => meta.outbox ? " It’s in the dev outbox." : "";
+const account = (email) => (meta.users || []).find((u) => u.email === String(email || "").toLowerCase());
+function accountsCard() {
+  const list = meta.users || [];
+  const waiting = list.filter((u) => u.status === "invited").length;
+  return `<details class="card adm-card adm-testers" id="accounts"><summary><b>Accounts</b> <span class="muted small">(${list.length}${waiting ? `, ${waiting} invited` : ""}) · invite only, no public sign-up</span></summary>
+    <form class="adm-invite" id="invite-form" novalidate>
+      <label>Email<input name="email" type="email" required autocomplete="off"></label>
+      <label>Name<input name="name" autocomplete="off"></label>
+      <label>Role<select name="role"><option value="client">Client</option><option value="tester">Tester</option></select></label>
+      <button class="btn small" type="submit">Send invite</button>
+    </form>
+    <p class="muted small">The invite link lasts 3 days. It confirms their email and lets them choose a password.${meta.outbox ? ` No email service yet: messages land in the <a href="outbox.html">dev outbox</a>.` : ""}</p>
+    <ul class="at-list">${list.map((u) => {
+      const [label, tone] = USTATUS[u.status] || [u.status, "muted"];
+      return `<li><span><b>${esc(u.name || u.email)}</b> <span class="muted small">${esc(u.email)} · ${ROLE[u.role] || u.role}</span></span>
+        <span class="st ${tone}">${label}</span>
+        ${u.status === "invited" ? `<button type="button" class="btn ghost small" data-resend="${esc(u.email)}">Resend invite</button>` : ""}</li>`;
+    }).join("")}</ul></details>`;
+}
+
+function wireAccounts() {
+  const f = el.querySelector("#invite-form");
+  if (f) f.onsubmit = (e) => {
+    e.preventDefault();
+    run(async () => { await api("invite", fields(f)); await load(); el.querySelector("#accounts").open = true; }, `Invite sent to ${f.email.value}.${sentNote()}`);
+  };
+  el.querySelectorAll("[data-resend]").forEach((b) => b.onclick = () =>
+    run(async () => { await api("invite-resend", { email: b.dataset.resend }); await load(); el.querySelector("#accounts").open = true; }, `New invite sent to ${b.dataset.resend}.${sentNote()}`));
+  const sl = el.querySelector("[data-send-login]");
+  if (sl) sl.onclick = () => run(async () => { await api("send-login", { id: sl.dataset.sendLogin }); await load(); }, `Login invite sent to ${cur()?.owner}.${sentNote()}`);
+}
+
 // The tester list (logins with role "tester") and their practice projects.
 function testersCard() {
   const list = meta.testers || [];
   if (!list.length) return "";
   return `<details class="card adm-card adm-testers"><summary><b>Testers</b> <span class="muted small">(${list.length}) · practice projects use the payment simulator</span></summary>
-    <p class="muted small">Add someone with <code>node tools/make_portal_user.mjs &lt;email&gt; "&lt;name&gt;" --tester</code>. They sign in, accept a practice quote and try the Pay buttons; no money moves.</p>
+    <p class="muted small">Invite a tester from <b>Accounts</b> above. They set a password, accept a practice quote and try the Pay buttons; no money moves.</p>
     <ul class="at-list">${list.map((t) => {
       const mine = projects.filter((p) => p.sandbox && p.owner === t.email);
       return `<li><span><b>${esc(t.name || t.email)}</b> <span class="muted small">${esc(t.email)}</span></span>
@@ -446,6 +496,7 @@ function wire(p) {
     if (matchMedia("(max-width: 900px)").matches) el.querySelector(".adm-main").scrollIntoView({ behavior: "smooth" });
   });
   wireClaims();
+  wireAccounts();
   if (!p) return;
   wireInvoices(p);
   const note = () => el.querySelector("#act-note")?.value || "";
