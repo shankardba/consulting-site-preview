@@ -12,8 +12,14 @@ export function invoiceLabel(inv) {
 
 export const METHOD = { bank_transfer: "Bank transfer", check: "Check", bank_debit: "Bank debit", card: "Card", paypal: "PayPal" };
 
-// Totals across many projects' invoices, for the admin header.
+// Totals across many projects' invoices, for the admin header. Test projects (made-up money, testers'
+// practice projects) are counted apart so they never mix with real money.
 export function moneySummary(projects, monthPrefix) {
+  const real = moneyOf(projects.filter((p) => !p.test), monthPrefix);
+  return { ...real, test: moneyOf(projects.filter((p) => p.test), monthPrefix) };
+}
+
+function moneyOf(projects, monthPrefix) {
   let outstanding = 0, overdue = 0, received = 0, drafts = 0;
   for (const p of projects) for (const i of p.invoices || []) {
     if (i.status === "sent") outstanding += i.balance;

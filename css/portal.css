@@ -131,3 +131,14 @@
 .claim-form label{display:grid;gap:4px;font-size:13px}
 .claim-form p{margin:0}
 .proj-tab .st + .st{margin-left:4px}
+
+/* Test checkout (payment simulator) and Pay buttons */
+.sim-banner{background:var(--warn-soft);border:1px dashed var(--warn);border-radius:8px;padding:12px 14px;margin:16px 0;font-size:15px}
+.checkout-card{max-width:520px;display:grid;gap:8px}
+.checkout-card h1{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.checkout-card p,.checkout-card h2{margin:0}
+.sim-outcomes{display:flex;flex-wrap:wrap;gap:8px}
+.inv-pay{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.inv-pay .muted{width:100%;font-size:13px}
+.inv-declined{grid-column:1/-1;color:var(--bad);font-size:13px;margin:0}
+.tester-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--surface-2);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;margin:0 0 14px;font-size:14px}

@@ -38,7 +38,8 @@ async function load() {
   if (!res.ok) return message((await res.json().catch(() => ({}))).error || "Something went wrong. Please reload.");
   data = await res.json();
   const first = data.projects.find((p) => p.status === "active") || data.projects[0];
-  selected = first?.id;
+  const asked = decodeURIComponent(location.hash.slice(1)); // e.g. back from the test checkout
+  selected = data.projects.some((p) => p.id === asked) ? asked : first?.id;
   render();
 }
 
@@ -55,6 +56,7 @@ function render() {
       <div><div class="eyebrow">Client portal</div><h1>${first ? `Welcome back, ${esc(first)}` : "Your projects"}</h1></div>
       <div class="row-btns">${user.admin ? `<a class="btn small" href="admin.html">Admin</a>` : ""}<button class="btn ghost small" id="logout" type="button">Sign out</button></div>
     </header>
+    ${user.tester ? testerBar() : ""}
     ${projects.some((x) => x.test) ? `<p class="sample-note">Test data: your real projects with made-up prices, invoices and payments. Only your login can see them.</p>` : ""}
     ${projects.some((x) => x.sample) ? `<p class="sample-note">Sample projects: the business, people and figures are invented so you can see how the portal works.</p>` : ""}
     ${projects.length ? `<div class="proj-list" role="tablist" aria-label="Your projects">${projects.map(projTab).join("")}</div>` : `<div class="card portal-msg"><p>No projects yet. Once a proposal is accepted, it appears here.</p></div>`}
@@ -63,6 +65,28 @@ function render() {
   el.querySelectorAll("[data-proj]").forEach((b) => b.onclick = () => { selected = b.dataset.proj; filter = "all"; render(); });
   el.querySelectorAll("[data-filter]").forEach((b) => b.onclick = () => { filter = b.dataset.filter; render(); });
   if (p) wireActions(p);
+  el.querySelector("#tester-new")?.addEventListener("click", async (e) => {
+    if (projects.some((x) => x.sandbox) && !confirm("Start over? Your practice project and its test payments are deleted and a fresh one is made.")) return;
+    e.target.disabled = true;
+    const res = await fetch("/api/tester", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(() => null);
+    const out = res ? await res.json().catch(() => ({})) : {};
+    if (!res?.ok) { e.target.disabled = false; return alert(out.error || "Couldn’t make a practice project."); }
+    location.hash = out.id; load();
+  });
+}
+
+function testerBar() {
+  const has = data.projects.some((x) => x.sandbox);
+  return `<div class="tester-bar" role="note"><span><b>Tester.</b> Test projects use the payment simulator: the Pay buttons work, and no money moves.</span>
+    <button class="btn ghost small" id="tester-new" type="button">${has ? "Start over with a fresh practice project" : "Make a practice project"}</button></div>`;
+}
+
+// Pay buttons: testers and admins on test projects only, until a real provider is live. The checkout page
+// is the simulator's; with Stripe/PayPal it becomes theirs.
+function payButtons(p, i) {
+  if (!(p.test && data.user.tester) || i.status !== "sent" || i.balance <= i.awaiting) return "";
+  return `<div class="inv-pay"><span class="muted">Pay ${cents(i.balance - i.awaiting)} online:</span>${(data.payMethods || []).map((m) =>
+    `<button type="button" class="btn small${m.id === "bank_debit" ? "" : " ghost"}" data-pay="${esc(i.number)}" data-method="${m.id}">${esc(m.label)}</button>`).join("")}</div>`;
 }
 
 function wireActions(p) {
@@ -75,6 +99,14 @@ function wireActions(p) {
     catch (err) { af.querySelector("button[type=submit]").disabled = false; fail(af, err); }
   };
   el.querySelectorAll("[data-claim]").forEach((b) => b.onclick = () => { claimFor = b.dataset.claim; render(); el.querySelector("#claim-form [name=method]")?.focus(); });
+  el.querySelectorAll("[data-pay]").forEach((b) => b.onclick = async () => {
+    b.disabled = true;
+    const res = await fetch("/api/pay/start", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ number: b.dataset.pay, method: b.dataset.method }) }).catch(() => null);
+    const out = res ? await res.json().catch(() => ({})) : {};
+    if (!res?.ok) { b.disabled = false; return alert(out.error || "Couldn’t start the payment."); }
+    location.href = out.url;
+  });
   const cf = el.querySelector("#claim-form");
   if (cf) {
     cf.querySelector("#claim-cancel").onclick = () => { claimFor = null; render(); };
@@ -177,6 +209,8 @@ function pricing(p) {
       <span class="inv-no">${esc(i.number)}</span><span class="inv-amt">${cents(i.total)}</span>
       <span class="inv-what">${esc(i.lines.map((l) => l.item).join(", "))}</span>
       <span class="st ${tone}">${esc(text)}</span><a href="invoice.html?n=${encodeURIComponent(i.number)}">View${i.state === "paid" ? " receipt" : " invoice"}</a>
+      ${i.declined ? `<p class="inv-declined">Your last payment by ${esc(i.declined.method === "paypal" ? "PayPal" : i.declined.method === "card" ? "card" : "bank account")} didn’t go through${i.declined.date ? ` (${day(i.declined.date)})` : ""}. Try again or use another method.</p>` : ""}
+      ${payButtons(p, i)}
       ${i.status === "sent" && i.balance > i.awaiting && claimFor !== i.number ? `<button type="button" class="btn ghost small inv-sent" data-claim="${esc(i.number)}">I’ve sent payment</button>` : ""}
       ${claimFor === i.number ? claimForm(i) : ""}</li>`; }).join("")}</ul>`
       : `<p class="muted small">Invoices and payment receipts will appear here and in your project history.</p>`}

@@ -99,3 +99,7 @@ label.inline input{font:15px var(--body);padding:6px 8px;border:1px solid var(--
 .ac-row label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
 .ai-claims{list-style:none;margin:6px 0 0;padding:8px 10px;border-radius:8px;background:var(--warn-soft);font-size:14px}
 @media (max-width:760px){.ac-row{grid-template-columns:1fr 1fr}.ac-what,.ac-row .row-btns{grid-column:1/-1}}
+.adm-testers{margin-bottom:16px}
+.adm-testers summary{cursor:pointer}
+.at-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.at-list li{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:8px}

@@ -99,6 +99,7 @@ function render() {
         <button class="btn ghost small" id="logout" type="button">Sign out</button></div>
     </header>
     ${toConfirm()}
+    ${testersCard()}
     <div class="adm-views" role="tablist" aria-label="Filter projects">${VIEWS.map(([id, label, f]) => {
       const n = projects.filter(f).length;
       return `<button role="tab" type="button" data-view="${id}" aria-selected="${id === view}"><b>${n}</b><span>${label}</span></button>`;
@@ -240,7 +241,8 @@ function summary() {
     <span>Outstanding<b>${cents(m.outstanding)}</b></span>
     <span class="${m.overdue ? "late" : ""}">Overdue<b>${cents(m.overdue)}</b></span>
     <span>Received this month<b>${cents(m.received)}</b></span>
-    ${m.drafts ? `<span>Drafts<b>${m.drafts}</b></span>` : ""}</div>`;
+    ${m.drafts ? `<span>Drafts<b>${m.drafts}</b></span>` : ""}
+    ${m.test.outstanding || m.test.received ? `<span class="muted">Test data: ${cents(m.test.outstanding)} outstanding, ${cents(m.test.received)} received this month (left out above)</span>` : ""}</div>`;
 }
 
 function owed(p) {
@@ -272,7 +274,26 @@ function toConfirm() {
     </form>`).join("")}</section>`;
 }
 
+// The tester list (logins with role "tester") and their practice projects.
+function testersCard() {
+  const list = meta.testers || [];
+  if (!list.length) return "";
+  return `<details class="card adm-card adm-testers"><summary><b>Testers</b> <span class="muted small">(${list.length}) · practice projects use the payment simulator</span></summary>
+    <p class="muted small">Add someone with <code>node tools/make_portal_user.mjs &lt;email&gt; "&lt;name&gt;" --tester</code>. They sign in, accept a practice quote and try the Pay buttons; no money moves.</p>
+    <ul class="at-list">${list.map((t) => {
+      const mine = projects.filter((p) => p.sandbox && p.owner === t.email);
+      return `<li><span><b>${esc(t.name || t.email)}</b> <span class="muted small">${esc(t.email)}</span></span>
+        <span class="muted small">${mine.length ? mine.map((p) => `<a href="#${esc(p.id)}" data-id="${esc(p.id)}">${esc(p.id)}</a> ${esc(STATUS[p.status]?.[0] || p.status)}`).join(", ") : "no practice project"}</span>
+        <button type="button" class="btn ghost small" data-sandbox="${esc(t.email)}" data-has="${mine.length ? 1 : 0}">${mine.length ? "Start over" : "Make practice project"}</button></li>`;
+    }).join("")}</ul></details>`;
+}
+
 function wireClaims() {
+  el.querySelectorAll("[data-sandbox]").forEach((b) => b.onclick = () => {
+    const reset = b.dataset.has === "1";
+    if (reset && !confirm(`Start over for ${b.dataset.sandbox}? Their practice projects and test payments are deleted and a fresh one is made.`)) return;
+    run(async () => { const out = await api(reset ? "sandbox-reset" : "sandbox-create", { email: b.dataset.sandbox }); await load(); return out; }, "Practice project ready.");
+  });
   el.querySelectorAll("form[data-claim]").forEach((f) => {
     f.onsubmit = (e) => { e.preventDefault(); run(() => api("claim-confirm", { claimId: f.dataset.claim, ...fields(f) }), "Payment confirmed. The client sees it as received."); };
     f.querySelector("[data-noclaim]").onclick = () => {
@@ -339,7 +360,7 @@ function invRow(i) {
       <span class="inv-amt">${cents(i.total)}</span></div>
     <ul class="ai-lines">${i.lines.map((l) => `<li><span>${esc(l.item)}</span><span>${cents(l.amount)}</span></li>`).join("")}</ul>
     ${i.payments.length ? `<ul class="ai-pays">${i.payments.map((x) => `<li><span>${day(x.date)} · ${esc(METHOD[x.method] || x.method)}${x.reference ? ` ${esc(x.reference)}` : ""}</span>
-      <span><b>${cents(x.amount)}</b> ${x.provider === "manual" ? `<button type="button" class="linkbtn tl-del" data-unpay="${x.id}">Remove</button>` : ""}</span></li>`).join("")}
+      <span>${x.provider === "simulator" ? `<span class="test-tag">simulator</span> ` : ""}<b>${cents(x.amount)}</b> ${["manual", "simulator"].includes(x.provider) ? `<button type="button" class="linkbtn tl-del" data-unpay="${x.id}">Remove</button>` : ""}</span></li>`).join("")}
       ${i.balance > 0 && i.status === "sent" ? `<li><span>Still due</span><b>${cents(i.balance)}</b></li>` : ""}</ul>` : ""}
     ${i.claims.length ? `<ul class="ai-claims">${i.claims.map((c) => `<li>Client says ${cents(c.amount)} by ${esc((METHOD[c.method] || c.method).toLowerCase())}${c.reference ? ` ${esc(c.reference)}` : ""} was sent ${day(c.date)}. Confirm it above, under Payments to confirm.</li>`).join("")}</ul>` : ""}
     ${payFor === i.number ? payForm(i) : ""}
