@@ -115,3 +115,19 @@
   .inv-doc{border:0;box-shadow:none;padding:0}
   .st{border:1px solid currentColor}
 }
+
+/* Accepting a quote, "I've sent payment", and timeline links to invoices (payments plan phase 1b) */
+.accept{border-left:4px solid var(--ok);display:grid;gap:10px;margin:16px 0}
+.accept h3,.accept p{margin:0}
+.accept label{display:grid;gap:4px;font-size:14px}
+.accept .acc-name input{max-width:360px}
+.accept .acc-agree{display:flex;gap:8px;align-items:flex-start;font-size:15px}
+.accept .acc-agree input{margin-top:3px}
+.accept .row-btns{align-items:center}
+.form-err{color:var(--bad);font-size:14px;margin:0}
+.tl-link{display:inline-block;margin-top:4px;font-size:14px;font-weight:600}
+.inv-list .inv-sent{grid-column:1/-1;justify-self:start}
+.claim-form{grid-column:1/-1;display:grid;gap:8px;padding:10px;border-radius:8px;background:var(--surface-2, var(--doc-soft))}
+.claim-form label{display:grid;gap:4px;font-size:13px}
+.claim-form p{margin:0}
+.proj-tab .st + .st{margin-left:4px}

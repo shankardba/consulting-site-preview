@@ -98,6 +98,7 @@ function render() {
         <a class="btn ghost small" href="portal.html">Client view</a>
         <button class="btn ghost small" id="logout" type="button">Sign out</button></div>
     </header>
+    ${toConfirm()}
     <div class="adm-views" role="tablist" aria-label="Filter projects">${VIEWS.map(([id, label, f]) => {
       const n = projects.filter(f).length;
       return `<button role="tab" type="button" data-view="${id}" aria-selected="${id === view}"><b>${n}</b><span>${label}</span></button>`;
@@ -122,7 +123,8 @@ function editor(p) {
     <div class="card adm-card">
       <div class="proj-top">
         <div><span class="chip svc-chip">${esc(p.service || "No service set")}</span><h2>${esc(p.title)}</h2>
-          <p class="muted small">${esc(p.id)} · client <b>${esc(p.owner)}</b>${p.business ? ` · ${esc(p.business)}` : ""}${p.sample ? ` · <span class="sample-tag">sample</span>` : ""}${p.test ? ` · <span class="test-tag">test data</span>` : ""}</p></div>
+          <p class="muted small">${esc(p.id)} · client <b>${esc(p.owner)}</b>${p.business ? ` · ${esc(p.business)}` : ""}${p.sample ? ` · <span class="sample-tag">sample</span>` : ""}${p.test ? ` · <span class="test-tag">test data</span>` : ""}</p>
+          ${p.acceptedBy ? `<p class="muted small">Quote accepted online by ${esc(p.acceptedBy)} on ${day(p.dates.accepted)}${p.stage === "approved" ? ". Moves into Discovery when the first payment arrives." : "."}</p>` : ""}</div>
         ${pill(p.status)}
       </div>
       ${actions(p)}
@@ -248,6 +250,38 @@ function owed(p) {
   return due.length ? ` · ${cents(due.reduce((t, i) => t + i.balance, 0))} due` : "";
 }
 
+// "I've sent payment" notes from clients, across all projects, newest last.
+function claimsWaiting() {
+  const out = [];
+  for (const p of projects) for (const i of p.invoices) for (const c of i.claims || []) out.push({ p, i, c });
+  return out.sort((a, b) => a.c.id - b.c.id);
+}
+
+function toConfirm() {
+  const list = claimsWaiting();
+  if (!list.length) return "";
+  return `<section class="card adm-card adm-confirm" aria-label="Payments to confirm"><h3>Payments to confirm <span class="muted small">(${list.length})</span></h3>
+    <p class="muted small">Clients say these are on their way. Confirm each one when the money is in your account; it then shows as received on their timeline.</p>
+    ${list.map(({ p, i, c }) => `<form class="ac-row" data-claim="${c.id}" data-proj="${esc(p.id)}">
+      <div class="ac-what"><b>${cents(c.amount)}</b> by ${esc((METHOD[c.method] || c.method).toLowerCase())}${c.reference ? ` ${esc(c.reference)}` : ""}, sent ${day(c.date)}
+        <span class="muted small">${esc(p.title)} · invoice ${esc(i.number)} · ${esc(c.by)}</span></div>
+      <label>Amount received ($)<input name="amount" inputmode="decimal" value="${(Math.min(c.amount, i.balance) / 100).toFixed(2)}" required></label>
+      <label>Received on<input type="date" name="date" value="${meta.today}" required></label>
+      <div class="row-btns"><button class="btn small" type="submit">Confirm received</button>
+        <button class="btn ghost small" type="button" data-noclaim="${c.id}">Not received</button></div>
+    </form>`).join("")}</section>`;
+}
+
+function wireClaims() {
+  el.querySelectorAll("form[data-claim]").forEach((f) => {
+    f.onsubmit = (e) => { e.preventDefault(); run(() => api("claim-confirm", { claimId: f.dataset.claim, ...fields(f) }), "Payment confirmed. The client sees it as received."); };
+    f.querySelector("[data-noclaim]").onclick = () => {
+      const note = prompt("Not received yet. Add a note for the client (optional):", "");
+      if (note !== null) run(() => api("claim-reject", { claimId: f.dataset.claim, note }), "Marked not received. The client sees your note.");
+    };
+  });
+}
+
 const invPill = (i) => { const [label, tone] = invoiceLabel(i); return `<span class="st ${tone}">${esc(label)}</span>`; };
 
 // Ready-made lines from the quote: 50/50 terms split in two, monthly lines billed for this month.
@@ -307,12 +341,13 @@ function invRow(i) {
     ${i.payments.length ? `<ul class="ai-pays">${i.payments.map((x) => `<li><span>${day(x.date)} · ${esc(METHOD[x.method] || x.method)}${x.reference ? ` ${esc(x.reference)}` : ""}</span>
       <span><b>${cents(x.amount)}</b> ${x.provider === "manual" ? `<button type="button" class="linkbtn tl-del" data-unpay="${x.id}">Remove</button>` : ""}</span></li>`).join("")}
       ${i.balance > 0 && i.status === "sent" ? `<li><span>Still due</span><b>${cents(i.balance)}</b></li>` : ""}</ul>` : ""}
+    ${i.claims.length ? `<ul class="ai-claims">${i.claims.map((c) => `<li>Client says ${cents(c.amount)} by ${esc((METHOD[c.method] || c.method).toLowerCase())}${c.reference ? ` ${esc(c.reference)}` : ""} was sent ${day(c.date)}. Confirm it above, under Payments to confirm.</li>`).join("")}</ul>` : ""}
     ${payFor === i.number ? payForm(i) : ""}
     <div class="row-btns">
       ${i.status === "draft" ? btn("send", "Send to client", "") : ""}
       ${open && payFor !== i.number ? btn("pay", "Record payment", "") : ""}
       <a class="btn ghost small" href="invoice.html?n=${encodeURIComponent(i.number)}" target="_blank" rel="noopener">View${i.status === "draft" ? " draft" : ""}</a>
-      ${i.status !== "void" && !i.payments.length ? btn("void", i.status === "draft" ? "Delete draft" : "Cancel invoice", "ghost danger") : ""}
+      ${i.status !== "void" && !i.payments.length && !i.claims.length ? btn("void", i.status === "draft" ? "Delete draft" : "Cancel invoice", "ghost danger") : ""}
     </div></div>`;
 }
 
@@ -389,6 +424,7 @@ function wire(p) {
     selected = b.dataset.id; quoting = false; invOpen = false; payFor = null; history.replaceState(null, "", "#" + selected); render();
     if (matchMedia("(max-width: 900px)").matches) el.querySelector(".adm-main").scrollIntoView({ behavior: "smooth" });
   });
+  wireClaims();
   if (!p) return;
   wireInvoices(p);
   const note = () => el.querySelector("#act-note")?.value || "";

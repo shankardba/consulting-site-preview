@@ -47,6 +47,7 @@ function render({ invoice: i, project: p, payTo }) {
           <tr><th>Total</th><td class="n">${cents(i.total)}</td></tr>
           ${i.payments.map((x) => `<tr class="muted"><td>Paid ${day(x.date)} by ${esc((METHOD[x.method] || x.method).toLowerCase())}${x.reference ? ` (${esc(x.reference)})` : ""}</td><td class="n">−${cents(x.amount)}</td></tr>`).join("")}
           ${i.status === "sent" ? `<tr class="inv-due"><th>${receipt ? "Balance" : "Amount due"}</th><td class="n">${cents(i.balance)}</td></tr>` : ""}
+          ${(i.claims || []).map((c) => `<tr class="muted"><td>Sent ${day(c.date)} by ${esc((METHOD[c.method] || c.method).toLowerCase())}${c.reference ? ` (${esc(c.reference)})` : ""}, waiting for confirmation</td><td class="n">${cents(c.amount)}</td></tr>`).join("")}
         </tfoot>
       </table>
       ${i.note ? `<p>${esc(i.note)}</p>` : ""}

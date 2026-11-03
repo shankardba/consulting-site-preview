@@ -16,7 +16,18 @@ const KIND = {
 };
 const FILTERS = [["all", "Everything"], ["report", "Progress reports"], ["key", "Milestones and decisions"]];
 
-let data, selected, filter = "all";
+let data, selected, filter = "all", claimFor = null; // claimFor: the invoice whose "I've sent payment" form is open
+
+// POST a client action; the reply is this client's updated project.
+async function act(path, body) {
+  const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+  if (!res) throw new Error("Couldn’t reach the server. Check your connection and try again.");
+  if (res.status === 401) { location.replace("login.html?expired"); throw new Error(""); }
+  const out = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(out.error || "Something went wrong. Please try again.");
+  const i = data.projects.findIndex((x) => x.id === out.project.id);
+  data.projects[i] = out.project;
+}
 
 async function load() {
   let res;
@@ -51,13 +62,42 @@ function render() {
   el.querySelector("#logout").onclick = logout;
   el.querySelectorAll("[data-proj]").forEach((b) => b.onclick = () => { selected = b.dataset.proj; filter = "all"; render(); });
   el.querySelectorAll("[data-filter]").forEach((b) => b.onclick = () => { filter = b.dataset.filter; render(); });
+  if (p) wireActions(p);
+}
+
+function wireActions(p) {
+  const fail = (form, e) => { if (e.message) { const m = form.querySelector(".form-err"); m.textContent = e.message; m.hidden = false; } };
+  const af = el.querySelector("#accept-form");
+  if (af) af.onsubmit = async (e) => {
+    e.preventDefault();
+    af.querySelector("button[type=submit]").disabled = true;
+    try { await act("/api/accept", { id: p.id, name: af.name.value, agree: af.agree.checked }); render(); }
+    catch (err) { af.querySelector("button[type=submit]").disabled = false; fail(af, err); }
+  };
+  el.querySelectorAll("[data-claim]").forEach((b) => b.onclick = () => { claimFor = b.dataset.claim; render(); el.querySelector("#claim-form [name=method]")?.focus(); });
+  const cf = el.querySelector("#claim-form");
+  if (cf) {
+    cf.querySelector("#claim-cancel").onclick = () => { claimFor = null; render(); };
+    cf.onsubmit = async (e) => {
+      e.preventDefault();
+      try { await act("/api/payment-sent", { number: claimFor, ...Object.fromEntries(new FormData(cf)) }); claimFor = null; render(); }
+      catch (err) { fail(cf, err); }
+    };
+  }
 }
 
 const pill = (status) => { const [label, tone] = STATUS[status] || [status, "muted"]; return `<span class="st ${tone}">${esc(label)}</span>`; };
 
 function projTab(p) {
   return `<button role="tab" class="proj-tab" data-proj="${esc(p.id)}" aria-selected="${p.id === selected}">
-    <span class="pt-title">${esc(p.title)}</span><span class="pt-sub">${esc(p.business)} · ${esc(p.id)}</span>${pill(p.status)}</button>`;
+    <span class="pt-title">${esc(p.title)}</span><span class="pt-sub">${esc(p.business)} · ${esc(p.id)}</span>${pill(p.status)}${owingBadge(p)}</button>`;
+}
+
+// "Overdue" or "Payment due" on a project tab, unless the client has already said it's on its way.
+function owingBadge(p) {
+  const open = (p.invoices || []).filter((i) => i.status === "sent" && i.balance > i.awaiting);
+  if (!open.length) return "";
+  return open.some((i) => i.state === "overdue") ? `<span class="st late">Overdue</span>` : `<span class="st review">Payment due</span>`;
 }
 
 function stepper(p, stages) {
@@ -84,13 +124,37 @@ function detail(p, stages) {
     </div>
     ${stepper(p, stages)}
     <dl class="facts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
-    ${pending ? `<div class="callout">We’re reviewing this request. We reply within two business days with questions or a fixed-scope quote. Once you accept the quote, progress reports and the full project history appear here.</div>` : ""}
+    ${p.status === "approved" && p.price ? acceptPanel(p) : pending ? `<div class="callout">We’re reviewing this request. We reply within two business days with questions or a fixed-scope quote. Once you accept the quote, progress reports and the full project history appear here.</div>` : ""}
+    ${p.status === "active" && p.stage === "approved" ? `<div class="callout">Thank you for accepting the quote. Work starts with discovery as soon as the first invoice is paid.</div>` : ""}
     ${p.next ? `<div class="next-up"><span class="eyebrow">Next</span><b>${day(p.next.date)}</b><span>${esc(p.next.text)}</span></div>` : ""}
     <div class="proj-grid">
       <div>${history(p)}</div>
       ${p.price || p.invoices?.length ? `<aside>${pricing(p)}</aside>` : ""}
     </div>
   </section>`;
+}
+
+function acceptPanel(p) {
+  const first = p.firstInvoice || [];
+  const total = first.reduce((t, l) => t + l.amount, 0);
+  return `<form class="accept card" id="accept-form">
+    <h3>Your quote is ready</h3>
+    <p>The fixed-scope prices are on the right. Accept here to go ahead; there’s nothing to sign or send back.</p>
+    ${first.length ? `<p>We’ll send your first invoice straight away: <b>${esc(first.map((l) => l.item).join(", "))}, ${cents(total)}</b>, due in ${data.dueDays || 15} days. Work starts when it’s paid.</p>` : ""}
+    <label class="acc-name">Your full name<input name="name" autocomplete="name" required maxlength="120"></label>
+    <label class="acc-agree"><input type="checkbox" name="agree" required> I accept this quote, its prices and payment terms, for ${esc(p.business || "my business")}.</label>
+    <p class="form-err" role="alert" hidden></p>
+    <div class="row-btns"><button class="btn" type="submit">Accept quote</button>
+      <span class="muted small">Questions first? Reply to the quote email and we’ll talk it through.</span></div>
+  </form>`;
+}
+
+// The invoice a timeline entry is about: "View invoice", or "Receipt" once it's paid.
+function entryLink(p, h) {
+  if (!h.invoice) return "";
+  const inv = (p.invoices || []).find((i) => i.number === h.invoice);
+  if (!inv) return "";
+  return `<a class="tl-link" href="invoice.html?n=${encodeURIComponent(inv.number)}">${inv.state === "paid" ? "Receipt" : "View invoice"} ${esc(inv.number)}</a>`;
 }
 
 function history(p) {
@@ -100,21 +164,38 @@ function history(p) {
     <ol class="timeline">${items.map((h) => { const [label, tone] = KIND[h.kind] || [h.kind, "muted"]; return `
       <li class="tl ${tone}"><span class="tl-dot"></span>
         <div class="tl-meta"><time datetime="${esc(h.date)}">${day(h.date)}</time><span class="tl-kind">${label}</span></div>
-        <h4>${esc(h.title)}</h4><p>${esc(h.body)}</p></li>`; }).join("") || `<li class="muted">Nothing in this view yet.</li>`}</ol>`;
+        <h4>${esc(h.title)}</h4><p>${esc(h.body)}</p>${entryLink(p, h)}</li>`; }).join("") || `<li class="muted">Nothing in this view yet.</li>`}</ol>`;
 }
 
 function pricing(p) {
   const invs = p.invoices || [];
   const owing = invs.filter((i) => i.status === "sent" && i.balance > 0);
+  const label = (i) => i.awaiting && i.state !== "paid" ? ["Payment sent, waiting for confirmation", "review"] : invoiceLabel(i);
   return `<div class="side-card"><h3>${p.price ? "Price and payments" : "Invoices"}</h3>
     ${p.price ? `<ul class="price-list">${p.price.map((x) => `<li><span>${esc(x.item)}</span><b>${money(x.amount)}${x.per ? `<small>/${esc(x.per)}</small>` : ""}</b><em>${esc(x.terms)}</em></li>`).join("")}</ul>` : ""}
-    ${invs.length ? `<h4 class="small">Invoices</h4><ul class="inv-list">${invs.map((i) => { const [label, tone] = invoiceLabel(i); return `<li>
+    ${invs.length ? `<h4 class="small">Invoices</h4><ul class="inv-list">${invs.map((i) => { const [text, tone] = label(i); return `<li>
       <span class="inv-no">${esc(i.number)}</span><span class="inv-amt">${cents(i.total)}</span>
       <span class="inv-what">${esc(i.lines.map((l) => l.item).join(", "))}</span>
-      <span class="st ${tone}">${esc(label)}</span><a href="invoice.html?n=${encodeURIComponent(i.number)}">View${i.state === "paid" ? " receipt" : " invoice"}</a></li>`; }).join("")}</ul>`
+      <span class="st ${tone}">${esc(text)}</span><a href="invoice.html?n=${encodeURIComponent(i.number)}">View${i.state === "paid" ? " receipt" : " invoice"}</a>
+      ${i.status === "sent" && i.balance > i.awaiting && claimFor !== i.number ? `<button type="button" class="btn ghost small inv-sent" data-claim="${esc(i.number)}">I’ve sent payment</button>` : ""}
+      ${claimFor === i.number ? claimForm(i) : ""}</li>`; }).join("")}</ul>`
       : `<p class="muted small">Invoices and payment receipts will appear here and in your project history.</p>`}
     ${owing.length ? `<p class="pay-how"><b>How to pay:</b> ${data.payTo ? esc(data.payTo) : "bank transfer or check. Our details are on each invoice once our business account is open; until then, reply to the invoice email and we’ll send them."}</p>` : ""}
   </div>`;
+}
+
+// "I've sent payment" for a bank transfer or check. Card and PayPal come with the Pay button later.
+function claimForm(i) {
+  const left = i.balance - i.awaiting;
+  return `<form class="claim-form" id="claim-form">
+    <label>How<select name="method"><option value="bank_transfer">Bank transfer</option><option value="check">Check</option></select></label>
+    <label>Amount ($)<input name="amount" inputmode="decimal" value="${(left / 100).toFixed(2)}" required></label>
+    <label>Date sent<input type="date" name="date" value="${new Date().toLocaleDateString("en-CA")}" required></label>
+    <label>Check number or transfer reference (optional)<input name="reference" maxlength="80"></label>
+    <p class="form-err" role="alert" hidden></p>
+    <div class="row-btns"><button class="btn small" type="submit">Let us know</button><button class="btn ghost small" type="button" id="claim-cancel">Cancel</button></div>
+    <p class="muted small">We confirm it when it reaches our account, usually within two business days.</p>
+  </form>`;
 }
 
 async function logout() {
