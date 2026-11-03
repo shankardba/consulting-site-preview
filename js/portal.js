@@ -3,18 +3,24 @@ import { cents, invoiceLabel } from "./money.js";
 const el = document.getElementById("portal");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const day = (d) => d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : "";
+// A timeline entry's date, with the time (US Eastern) when it was recorded as it happened.
+const stamp = (h) => h.at ? new Date(h.at).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }) : day(h.date);
 const money = (n) => "$" + Number(n).toLocaleString("en-US");
 
 const STATUS = {
-  submitted: ["Request received", "review"], review: ["Under review", "review"], approved: ["Quote sent", "review"],
+  submitted: ["Under review", "review"], review: ["Under review", "review"], approved: ["Accepted", "review"],
   active: ["In progress", "active"], care: ["Care plan", "active"], complete: ["Complete", "done"], declined: ["Not going ahead", "muted"],
+  rolledback: ["Rolled back", "muted"],
 };
 const KIND = {
-  proposal: ["Request", "rel"], decision: ["Decision", "sheet"], report: ["Progress report", "doc"],
+  proposal: ["Request", "rel"], decision: ["Decision", "sheet"], report: ["Status report", "doc"],
   milestone: ["Milestone", "graph"], meeting: ["Meeting", "muted"], file: ["Deliverable", "doc"],
   invoice: ["Invoice", "rel"], payment: ["Payment", "sheet"],
 };
-const FILTERS = [["all", "Everything"], ["report", "Progress reports"], ["key", "Milestones and decisions"]];
+const FILTERS = [["all", "Everything"], ["report", "Status reports"], ["key", "Milestones and decisions"]];
+const stampAt = (iso) => iso ? new Date(iso).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }) : "";
+const seen = new Set(); // projects whose status reports we've marked as read this visit
+let asking = false;     // the "New request" form is open
 
 let data, selected, filter = "all", claimFor = null; // claimFor: the invoice whose "I've sent payment" form is open
 
@@ -26,7 +32,8 @@ async function act(path, body) {
   const out = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(out.error || "Something went wrong. Please try again.");
   const i = data.projects.findIndex((x) => x.id === out.project.id);
-  data.projects[i] = out.project;
+  if (i >= 0) data.projects[i] = out.project;
+  else { data.projects.unshift(out.project); selected = out.project.id; } // a new request
 }
 
 async function load() {
@@ -54,14 +61,20 @@ function render() {
   el.innerHTML = `
     <header class="portal-head">
       <div><div class="eyebrow">Client portal</div><h1>${first ? `Welcome back, ${esc(first)}` : "Your projects"}</h1></div>
-      <div class="row-btns">${user.admin ? `<a class="btn small" href="admin.html">Admin</a>` : ""}<a class="btn ghost small" href="account.html">Your account</a><button class="btn ghost small" id="logout" type="button">Sign out</button></div>
+      <div class="row-btns">${(data.orgs || []).length ? `<button class="btn small" id="ask-btn" type="button">New request</button>` : ""}${user.admin ? `<a class="btn small" href="admin.html">Admin</a>` : ""}<a class="btn ghost small" href="account.html">Your account</a><button class="btn ghost small" id="logout" type="button">Sign out</button></div>
     </header>
     ${user.tester ? testerBar() : ""}
     ${projects.some((x) => x.test) ? `<p class="sample-note">Test data: your real projects with made-up prices, invoices and payments. Only your login can see them.</p>` : ""}
     ${projects.some((x) => x.sample) ? `<p class="sample-note">Sample projects: the business, people and figures are invented so you can see how the portal works.</p>` : ""}
+    ${asking ? askForm() : ""}
     ${projects.length ? `<div class="proj-list" role="tablist" aria-label="Your projects">${projects.map(projTab).join("")}</div>` : `<div class="card portal-msg"><p>No projects yet. Once a proposal is accepted, it appears here.</p></div>`}
     ${p ? detail(p, stages) : ""}`;
   el.querySelector("#logout").onclick = logout;
+  wireAsk();
+  if (p && !seen.has(p.id) && p.history.some((h) => h.kind === "report")) {
+    seen.add(p.id); // read receipt for status reports: the first time the client opens this project
+    fetch("/api/seen", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: p.id }) }).catch(() => {});
+  }
   el.querySelectorAll("[data-proj]").forEach((b) => b.onclick = () => { selected = b.dataset.proj; filter = "all"; render(); });
   el.querySelectorAll("[data-filter]").forEach((b) => b.onclick = () => { filter = b.dataset.filter; render(); });
   if (p) wireActions(p);
@@ -98,6 +111,20 @@ function wireActions(p) {
     try { await act("/api/accept", { id: p.id, name: af.name.value, agree: af.agree.checked }); render(); }
     catch (err) { af.querySelector("button[type=submit]").disabled = false; fail(af, err); }
   };
+  const sf = el.querySelector("#sign-form");
+  if (sf) sf.onsubmit = async (e) => {
+    e.preventDefault();
+    sf.querySelector("button[type=submit]").disabled = true;
+    try { await act("/api/plan/sign", { id: p.id, name: sf.name.value, agree: sf.agree.checked, hash: p.plan.agreementHash }); render(); }
+    catch (err) { sf.querySelector("button[type=submit]").disabled = false; fail(sf, err); }
+  };
+  const of = el.querySelector("#signoff-form");
+  if (of) of.onsubmit = async (e) => {
+    e.preventDefault();
+    of.querySelector("button[type=submit]").disabled = true;
+    try { await act("/api/signoff", { id: p.id, name: of.name.value, agree: of.agree.checked }); render(); }
+    catch (err) { of.querySelector("button[type=submit]").disabled = false; fail(of, err); }
+  };
   el.querySelectorAll("[data-claim]").forEach((b) => b.onclick = () => { claimFor = b.dataset.claim; render(); el.querySelector("#claim-form [name=method]")?.focus(); });
   el.querySelectorAll("[data-pay]").forEach((b) => b.onclick = async () => {
     b.disabled = true;
@@ -133,6 +160,7 @@ function owingBadge(p) {
 }
 
 function stepper(p, stages) {
+  if (p.plan?.stages && p.plan.status === "signed") return planStepper(p);
   const at = stages.findIndex((s) => s.id === p.stage);
   return `<ol class="stepper" aria-label="Project stage">${stages.map((s, i) => {
     const state = i < at || p.status === "complete" ? "done" : i === at ? "now" : "next";
@@ -156,14 +184,116 @@ function detail(p, stages) {
     </div>
     ${stepper(p, stages)}
     <dl class="facts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
-    ${p.status === "approved" && p.price ? acceptPanel(p) : pending ? `<div class="callout">We’re reviewing this request. We reply within two business days with questions or a fixed-scope quote. Once you accept the quote, progress reports and the full project history appear here.</div>` : ""}
-    ${p.status === "active" && p.stage === "approved" ? `<div class="callout">Thank you for accepting the quote. Work starts with discovery as soon as the first invoice is paid.</div>` : ""}
+    ${p.status === "approved" && p.plan?.status === "sent" ? planPanel(p)
+      : p.status === "approved" && p.price && !p.plan ? acceptPanel(p)
+      : p.status === "approved" ? `<div class="callout">${p.plan?.status === "revising" ? "We’re updating the plan and agreement. We’ll email you when the new version is ready to review." : "We’ve accepted your request. We’re preparing the plan, agreement and payment schedule, and we’ll email you when they’re ready to review and sign here."}</div>`
+      : pending ? `<div class="callout">We’re reviewing this request and reply within two business days. Every step appears below with its date and time.</div>` : ""}
+    ${p.status === "active" && p.stage === "approved" && !p.plan ? `<div class="callout">Thank you for accepting the quote. Work starts with discovery as soon as the first invoice is paid.</div>` : ""}
+    ${p.plan?.status === "signed" ? deliveryPanel(p) : ""}
     ${p.next ? `<div class="next-up"><span class="eyebrow">Next</span><b>${day(p.next.date)}</b><span>${esc(p.next.text)}</span></div>` : ""}
     <div class="proj-grid">
       <div>${history(p)}</div>
-      ${p.price || p.invoices?.length ? `<aside>${pricing(p)}</aside>` : ""}
+      ${p.price || p.plan?.stages || p.invoices?.length ? `<aside>${pricing(p)}</aside>` : ""}
     </div>
   </section>`;
+}
+
+// ---------- plan, agreement, stages, sign-off ----------
+
+const SST = { planned: ["Coming up", "muted"], due: ["Invoice sent", "review"], active: ["In progress", "active"], done: ["Done", "done"] };
+
+function scheduleList(pl) {
+  const total = pl.stages.reduce((t, s) => t + s.amount, 0) + pl.finalAmount;
+  return `<ul class="price-list">${pl.stages.map((s) => `<li><span>${esc(s.name)}</span><b>${cents(s.amount)}</b><em>${s.amount ? "Paid at the start of the stage" : "No charge"}</em></li>`).join("")}
+    <li><span>Final payment</span><b>${cents(pl.finalAmount)}</b><em>After you sign off the production deployment</em></li>
+    ${pl.careMonthly ? `<li><span>Care plan (optional)</span><b>${cents(pl.careMonthly)}<small>/month</small></b><em>After launch</em></li>` : ""}
+    <li><span><b>Total</b></span><b>${cents(total)}</b></li></ul>`;
+}
+
+function planPanel(p) {
+  const pl = p.plan;
+  const first = pl.stages.find((s) => s.amount > 0);
+  return `<form class="accept card" id="sign-form">
+    <h3>Your plan and agreement are ready</h3>
+    ${pl.summary ? `<p>${esc(pl.summary)}</p>` : ""}
+    <ol class="plan-steps">${pl.stages.map((s) => `<li><b>${esc(s.name)}</b>${s.target ? ` <span class="muted small">target ${day(s.target)}</span>` : ""}
+      ${s.deliverables ? `<span>${esc(s.deliverables)}</span>` : ""}<span class="muted small">${s.amount ? `${cents(s.amount)}, invoiced when the stage starts. Work begins once it’s paid.` : "No charge."}</span></li>`).join("")}
+      <li><b>Production shakeout and sign-off</b><span>You get ${pl.shakeoutDays} days to test the live system, then sign off here.</span>
+      <span class="muted small">${pl.finalAmount ? `Final payment ${cents(pl.finalAmount)}, invoiced at sign-off.` : "No final payment."}</span></li></ol>
+    <details open><summary><b>The agreement</b> (standard terms v1, plan version ${pl.version})</summary><pre class="agreement">${esc(pl.agreement)}</pre></details>
+    ${first ? `<p>When you sign, we send the first invoice: <b>${esc(first.name)}, ${cents(first.amount)}</b>, due in ${data.dueDays || 15} days.</p>` : ""}
+    <label class="acc-name">Your full name<input name="name" autocomplete="name" required maxlength="120"></label>
+    <label class="acc-agree"><input type="checkbox" name="agree" required> I agree to this plan and agreement for ${esc(p.org?.name || p.business || "my business")}, including the payment schedule, sign-off and rollback terms.</label>
+    <p class="form-err" role="alert" hidden></p>
+    <div class="row-btns"><button class="btn" type="submit">Sign the agreement</button>
+      <span class="muted small">We record the date, time and the exact text you signed. Questions first? Reply to our email.</span></div>
+  </form>`;
+}
+
+function planStepper(p) {
+  const st = p.plan.stages, sh = p.shakeout;
+  const items = [...st.map((s) => ({ label: s.name, state: s.status === "done" ? "done" : s.status === "active" || s.status === "due" ? "now" : "next" })),
+    { label: "Sign-off", state: p.status === "complete" || p.status === "care" ? "done" : sh && !sh.rolledBack ? "now" : "next" }];
+  if (sh && !sh.rolledBack) items.forEach((x, i) => { if (i < items.length - 1) x.state = "done"; });
+  return `<ol class="stepper" aria-label="Project stages">${items.map((x) => {
+    const pct = x.state === "now" && p.progress != null && !sh ? `<span class="step-pct">${p.progress}%</span>` : "";
+    return `<li class="${x.state}"${x.state === "now" ? ' aria-current="step"' : ""}><span class="dot"></span><span class="step-label">${esc(x.label)}</span>${pct}</li>`;
+  }).join("")}</ol>`;
+}
+
+function deliveryPanel(p) {
+  const pl = p.plan, sh = p.shakeout;
+  const due = pl.stages.find((s) => s.status === "due");
+  const active = pl.stages.find((s) => s.status === "active");
+  if (p.status === "rolledback") return `<div class="callout bad">The production changes were rolled back on ${stampAt(sh?.rolledBack)}, because the shakeout ended without sign-off and payment, as the agreement sets out. Talk to us to pick it back up: we redeploy once it’s signed off and paid.</div>`;
+  if (sh && !sh.signedOff) return `<form class="accept card" id="signoff-form">
+    <h3>Your project is live. Please test it and sign off</h3>
+    <p>It went into production ${stampAt(sh.started)}. You have until <b>${stampAt(sh.ends)}</b> to test it. If anything isn’t working as agreed, tell us and we’ll fix it. When you’re happy, sign off here.</p>
+    ${pl.finalAmount ? `<p>Signing off sends the final invoice: <b>${cents(pl.finalAmount)}</b>.</p>` : ""}
+    <p class="muted small">If the shakeout ends without sign-off and payment, the agreement says we roll the changes back.</p>
+    <label class="acc-name">Your full name<input name="name" autocomplete="name" required maxlength="120"></label>
+    <label class="acc-agree"><input type="checkbox" name="agree" required> The production deployment works as agreed, and I sign it off for ${esc(p.org?.name || p.business || "my business")}.</label>
+    <p class="form-err" role="alert" hidden></p>
+    <div class="row-btns"><button class="btn" type="submit">Sign off</button></div></form>`;
+  if (sh?.signedOff && !sh.paid) return `<div class="callout">Thank you for signing off. The final invoice${sh.finalInvoice ? ` (${esc(sh.finalInvoice)})` : ""} is on the right.</div>`;
+  if (due) return `<div class="callout">Next up: <b>${esc(due.name)}</b>. Its invoice (${esc(due.invoice)}) is on the right, and work on this stage begins once it’s paid.</div>`;
+  if (active) return `<div class="callout">Now working on <b>${esc(active.name)}</b>${active.deliverables ? `: ${esc(active.deliverables)}` : ""}. Status reports appear in the history below.</div>`;
+  return "";
+}
+
+function reportBits(h) {
+  const d = h.details || {};
+  const row = (k, v, cls = "") => v ? `<p class="small ${cls}"><b>${k}:</b> ${esc(v)}</p>` : "";
+  return `${d.stage ? `<p class="muted small">Report ${d.n || ""} · ${esc(d.stage)}</p>` : ""}${row("Done", d.done)}${row("Next", d.next)}${row("Needed from you", d.needs, "needs")}
+    ${d.progress != null ? row("Stage progress", d.progress + "%") : ""}
+    ${(d.links || []).map((u) => `<a class="small tl-link" href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a>`).join(" ")}`;
+}
+
+// ---------- new request (customers) ----------
+
+function askForm() {
+  const orgs = data.orgs || [];
+  return `<form class="card accept" id="ask-form"><h3>New request</h3>
+    <p class="muted small">It goes to us straight away and starts under review. Every step appears here with its date and time.</p>
+    ${orgs.length > 1 ? `<label>For<select name="orgId">${orgs.map((o) => `<option value="${o.id}">${esc(o.name)}</option>`).join("")}</select></label>` : `<p class="small">For <b>${esc(orgs[0]?.name || "")}</b></p>`}
+    <label>What do you need?<input name="title" required maxlength="120" placeholder="e.g. Stock counts app"></label>
+    <label>Kind of work (optional)<input name="service" maxlength="80" list="ask-services"></label>
+    <datalist id="ask-services"><option value="Spreadsheet to App"><option value="Workbook Audit"><option value="Automation"><option value="Website"><option value="Knowledge Assistant"></datalist>
+    <label>Tell us more<textarea name="summary" rows="4" maxlength="2000"></textarea></label>
+    <p class="form-err" role="alert" hidden></p>
+    <div class="row-btns"><button class="btn" type="submit">Send request</button><button class="btn ghost" type="button" id="ask-cancel">Cancel</button></div></form>`;
+}
+
+function wireAsk() {
+  const b = el.querySelector("#ask-btn"); if (b) b.onclick = () => { asking = true; render(); el.querySelector("#ask-form [name=title]")?.focus(); };
+  const f = el.querySelector("#ask-form"); if (!f) return;
+  f.querySelector("#ask-cancel").onclick = () => { asking = false; render(); };
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    f.querySelector("button[type=submit]").disabled = true;
+    try { await act("/api/request", Object.fromEntries(new FormData(f))); asking = false; render(); }
+    catch (err) { f.querySelector("button[type=submit]").disabled = false; const m = f.querySelector(".form-err"); m.textContent = err.message; m.hidden = false; }
+  };
 }
 
 function acceptPanel(p) {
@@ -195,15 +325,16 @@ function history(p) {
     ${p.history.length > 3 ? `<div class="filters">${FILTERS.map(([id, label]) => `<button type="button" data-filter="${id}" aria-pressed="${filter === id}">${label}</button>`).join("")}</div>` : ""}</div>
     <ol class="timeline">${items.map((h) => { const [label, tone] = KIND[h.kind] || [h.kind, "muted"]; return `
       <li class="tl ${tone}"><span class="tl-dot"></span>
-        <div class="tl-meta"><time datetime="${esc(h.date)}">${day(h.date)}</time><span class="tl-kind">${label}</span></div>
-        <h4>${esc(h.title)}</h4><p>${esc(h.body)}</p>${entryLink(p, h)}</li>`; }).join("") || `<li class="muted">Nothing in this view yet.</li>`}</ol>`;
+        <div class="tl-meta"><time datetime="${esc(h.at || h.date)}">${stamp(h)}</time><span class="tl-kind">${label}</span></div>
+        <h4>${esc(h.title)}</h4><p>${esc(h.body)}</p>${h.kind === "report" ? reportBits(h) : ""}${entryLink(p, h)}</li>`; }).join("") || `<li class="muted">Nothing in this view yet.</li>`}</ol>`;
 }
 
 function pricing(p) {
   const invs = p.invoices || [];
   const owing = invs.filter((i) => i.status === "sent" && i.balance > 0);
   const label = (i) => i.awaiting && i.state !== "paid" ? ["Payment sent, waiting for confirmation", "review"] : invoiceLabel(i);
-  return `<div class="side-card"><h3>${p.price ? "Price and payments" : "Invoices"}</h3>
+  return `<div class="side-card"><h3>${p.price || p.plan?.stages ? "Price and payments" : "Invoices"}</h3>
+    ${p.plan?.stages ? scheduleList(p.plan) : ""}
     ${p.price ? `<ul class="price-list">${p.price.map((x) => `<li><span>${esc(x.item)}</span><b>${money(x.amount)}${x.per ? `<small>/${esc(x.per)}</small>` : ""}</b><em>${esc(x.terms)}</em></li>`).join("")}</ul>` : ""}
     ${invs.length ? `<h4 class="small">Invoices</h4><ul class="inv-list">${invs.map((i) => { const [text, tone] = label(i); return `<li>
       <span class="inv-no">${esc(i.number)}</span><span class="inv-amt">${cents(i.total)}</span>

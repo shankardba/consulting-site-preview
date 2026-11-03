@@ -4,13 +4,15 @@ const el = document.getElementById("admin");
 const toastEl = document.getElementById("toast");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const day = (d) => d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : "";
+const stampAt = (iso) => iso ? new Date(iso).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }) : "";
+const stamp = (h) => h.at ? new Date(h.at).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }) : day(h.date);
 const money = (n) => "$" + Number(n).toLocaleString("en-US");
 
 const STATUS = {
-  submitted: ["New request", "review"], review: ["Under review", "review"], approved: ["Quote sent", "rel"],
-  active: ["In progress", "active"], care: ["Care plan", "active"], complete: ["Complete", "done"], declined: ["Declined", "muted"],
+  submitted: ["New request", "review"], review: ["Under review", "review"], approved: ["Accepted", "rel"],
+  active: ["In progress", "active"], care: ["Care plan", "active"], complete: ["Complete", "done"], declined: ["Declined", "muted"], rolledback: ["Rolled back", "muted"],
 };
-const KIND = { proposal: ["Request", "rel"], decision: ["Decision", "sheet"], report: ["Progress report", "doc"],
+const KIND = { proposal: ["Request", "rel"], decision: ["Decision", "sheet"], report: ["Status report", "doc"],
   milestone: ["Milestone", "graph"], meeting: ["Meeting", "muted"], file: ["Deliverable", "doc"],
   invoice: ["Invoice", "rel"], payment: ["Payment", "sheet"] };
 const CLIENT_SEES = ["proposal", "decision", "invoice", "payment"]; // before acceptance
@@ -29,6 +31,7 @@ const DEFAULT_QUOTE = [
 ];
 
 let meta = {}, projects = [], selected = location.hash.slice(1) || null, view = "open", quoting = false;
+let planEdit = false; // the plan form is open on a sent plan (revising)
 let invOpen = false, payFor = null; // the new-invoice form, and which invoice's payment form is open
 
 async function api(path, body) {
@@ -134,8 +137,10 @@ function editor(p) {
       ${loginLine(p)}
       ${actions(p)}
     </div>
+    ${planCard(p)}
     ${BILLABLE.includes(p.status) || p.invoices.length ? invoicesCard(p) : ""}
-    ${accepted(p) && p.status !== "complete" ? delivery(p) : ""}
+    ${p.plan?.status === "signed" && ["active", "care", "rolledback"].includes(p.status) ? reportForm(p) : ""}
+    ${accepted(p) && p.status !== "complete" && !p.plan ? delivery(p) : ""}
     ${p.status !== "declined" ? postForm(p) : ""}
     ${historyCard(p)}
     ${details(p)}`;
@@ -143,7 +148,8 @@ function editor(p) {
 
 // Does the project's client have a login yet? Offer "Send login" when they don't (or haven't set it up).
 function loginLine(p) {
-  if (p.sandbox) return "";
+  // Logins go out when a proposal is accepted, never for a request still under review.
+  if (p.sandbox || ["submitted", "review", "declined", "approved"].includes(p.status)) return "";
   const u = account(p.owner);
   if (u?.status === "active") return "";
   const label = u?.status === "invited" ? "Resend login invite" : "Send login";
@@ -155,21 +161,171 @@ function actions(p) {
   const s = p.status;
   if (quoting) return quoteForm(p);
   const btn = (act, label, cls = "") => `<button type="button" class="btn small ${cls}" data-act="${act}">${label}</button>`;
+  const orgField = `<label class="inline">Organization <input id="acc-org" value="${esc(p.org?.name || p.business || "")}" placeholder="Business name"></label>`;
+  const legacy = p.status === "approved" && p.price.length && !p.plan;
+  const u = account(p.owner);
+  const login = u?.status === "active" ? "Their account is set up." : u ? `Their invite is waiting (<button type="button" class="linkbtn" data-send-login="${esc(p.id)}">resend</button>).` : "No login yet.";
+  const planNote = !p.plan ? "Write the plan and agreement below." : p.plan.status === "draft" ? "The plan is saved as a draft." : p.plan.status === "sent" ? `Plan and agreement sent ${stampAt(p.plan.sentAt)}, waiting for their signature.` : "";
   const parts = {
-    submitted: [`<p><b>New request.</b> Reply within two business days.</p>`, btn("review", "Start review", "ghost"), btn("quote", "Approve and send quote"), btn("decline", "Decline", "ghost danger")],
-    review: [`<p><b>Under review.</b> When you’re ready, approve it with a fixed-scope quote.</p>`, btn("quote", "Approve and send quote"), btn("decline", "Decline", "ghost danger")],
-    approved: [`<p><b>Quote sent:</b> ${p.price.map((x) => `${esc(x.item)} ${money(x.amount)}${x.per ? "/" + esc(x.per) : ""}`).join(", ")}. Mark it accepted once the agreement is signed and the first payment is in.</p>`,
+    submitted: [`<p><b>New request.</b> The client sees “Under review”. Reply within two business days.</p>`, btn("review", "Start review", "ghost"), orgField, btn("accept-request", "Accept proposal"), btn("decline", "Decline", "ghost danger")],
+    review: [`<p><b>Under review.</b> Accepting it puts it in the client’s organization and emails their account invite. The plan and agreement follow once their account is set up.</p>`, orgField, btn("accept-request", "Accept proposal"), btn("decline", "Decline", "ghost danger")],
+    approved: !legacy ? [`<p><b>Accepted</b>${p.org ? ` for ${esc(p.org.name)}` : ""}. ${login} ${planNote}</p>`, btn("decline", "Decline", "ghost danger")] : [`<p><b>Quote sent:</b> ${p.price.map((x) => `${esc(x.item)} ${money(x.amount)}${x.per ? "/" + esc(x.per) : ""}`).join(", ")}. Mark it accepted once the agreement is signed and the first payment is in.</p>`,
       `<label class="inline">Accepted on <input type="date" id="acc-date" value="${meta.today}"></label>`, btn("accept", "Mark accepted"), btn("quote", "Change quote", "ghost"), btn("decline", "Decline", "ghost danger")],
-    active: [`<p><b>In progress.</b> The client sees every update you post below.</p>`, btn("complete", "Mark complete", "ghost")],
+    active: p.plan ? [`<p><b>In progress.</b> Stages, deployment and sign-off are in the Plan card below.</p>`] : [`<p><b>In progress.</b> The client sees every update you post below.</p>`, btn("complete", "Mark complete", "ghost")],
+    rolledback: [`<p><b>Rolled back.</b> Production changes were rolled back after the shakeout. Redeploy once the client is ready to sign off and pay.</p>`, btn("deploy", "Redeploy to production")],
     care: [`<p><b>On a care plan.</b></p>`, btn("complete", "Mark complete", "ghost")],
     complete: [`<p><b>Complete.</b></p>`, btn("reopen", "Reopen", "ghost")],
     declined: [`<p><b>Declined.</b> The client sees it as “Not going ahead”.</p>`, btn("reopen", "Reopen", "ghost")],
   }[s] || [];
-  const flow = `<ol class="adm-flow">${["Request", "Review", "Quote", "Accepted", "Delivery", "Done"].map((label, i) => {
-    const at = { submitted: 0, review: 1, approved: 2, active: 4, care: 4, complete: 5, declined: -1 }[s];
+  const steps = legacy || (!p.plan && ["active", "care", "complete"].includes(s)) ? ["Request", "Review", "Quote", "Accepted", "Delivery", "Done"] : ["Request", "Review", "Accepted", "Signed", "Stages", "Shakeout", "Done"];
+  const shk = !!p.shakeout;
+  const flow = `<ol class="adm-flow">${steps.map((label, i) => {
+    const at = steps.length === 6 ? { submitted: 0, review: 1, approved: 2, active: 4, care: 4, complete: 5, declined: -1 }[s]
+      : { submitted: 0, review: 1, approved: 2, active: shk ? 5 : 4, rolledback: 5, care: 6, complete: 6, declined: -1 }[s];
     return `<li class="${i < at ? "done" : i === at ? "now" : ""}">${label}</li>`; }).join("")}</ol>`;
   return `${flow}<div class="adm-actions">${parts.join("")}</div>
     ${["submitted", "review", "approved"].includes(s) ? `<label class="note-field">Message to the client (optional; shown in their history)<textarea id="act-note" rows="2" placeholder="Leave blank for the standard wording"></textarea></label>` : ""}`;
+}
+
+// ---------- plan, agreement, stages, shakeout (worker/plans.js) ----------
+
+const KIND_OPTS = [["discovery", "Discovery"], ["build", "Build"], ["launch", "Launch / deploy"]];
+const DEFAULT_PLAN = { summary: "", finalAmount: "", shakeoutDays: 14, careMonthly: "", stages: [
+  { name: "Discovery", kind: "discovery", amount: "", deliverables: "", target: "" },
+  { name: "Build", kind: "build", amount: "", deliverables: "", target: "" },
+  { name: "Launch", kind: "launch", amount: "0", deliverables: "Deploy to production and hand over", target: "" }] };
+const dollars = (c) => c == null ? "" : String(c / 100);
+const SSTATUS = { planned: ["Planned", "muted"], due: ["Invoice sent", "review"], active: ["In progress", "active"], done: ["Done", "done"] };
+
+function planCard(p) {
+  const legacy = p.price.length && !p.plan;
+  if (legacy || !["approved", "active", "care", "complete", "rolledback"].includes(p.status) || (!p.plan && p.status !== "approved")) return "";
+  const pl = p.plan;
+  if (pl?.status === "signed") return stagesCard(p);
+  if (pl?.status === "sent" && !planEdit) {
+    return `<div class="card adm-card"><h3>Plan and agreement <span class="st review">Sent, waiting for signature</span></h3>
+      ${planSummary(pl)}
+      <details><summary class="small">The agreement as sent (version ${pl.version})</summary><pre class="agreement">${esc(pl.agreement)}</pre></details>
+      <div class="row-btns"><button type="button" class="btn ghost small" id="plan-revise">Revise the plan</button></div>
+      <p class="muted small">Revising takes it back to a draft: the client stops seeing it until you send it again.</p></div>`;
+  }
+  const v = pl ? { summary: pl.summary, finalAmount: dollars(pl.finalAmount), shakeoutDays: pl.shakeoutDays, careMonthly: pl.careMonthly ? dollars(pl.careMonthly) : "",
+    stages: pl.stages.map((s) => ({ name: s.name, kind: s.kind, amount: dollars(s.amount), deliverables: s.deliverables, target: s.target || "" })) } : DEFAULT_PLAN;
+  const ready = account(p.owner)?.status === "active";
+  return `<form class="card adm-card plan-form" id="plan-form">
+    <h3>Plan and agreement ${pl ? `<span class="st muted">Draft${pl.version > 1 ? `, version ${pl.version}` : ""}</span>` : ""}</h3>
+    <p class="muted small">Each stage is invoiced when it comes up and starts once paid. The final payment is invoiced when the client signs off the production deployment. If the shakeout ends without sign-off and payment, you roll back and record it here.</p>
+    <label class="note-field">Scope in plain words<textarea name="summary" rows="3" placeholder="What we'll deliver, in a few sentences">${esc(v.summary)}</textarea></label>
+    <div class="pl-stages" id="pl-stages">${v.stages.map(stageRow).join("")}</div>
+    <button type="button" class="linkbtn" id="pl-add">+ Add a stage</button>
+    <div class="adm-fields">
+      <label>Final payment after sign-off ($)<input name="finalAmount" type="number" min="0" step="1" value="${esc(v.finalAmount)}" required></label>
+      <label>Production shakeout (days)<input name="shakeoutDays" type="number" min="1" max="90" value="${esc(v.shakeoutDays)}" required></label>
+      <label>Care plan after launch ($/month, optional)<input name="careMonthly" type="number" min="0" step="1" value="${esc(v.careMonthly)}"></label>
+    </div>
+    <p class="muted small">The agreement is the standard terms (v1) filled in from this plan: scope, stage payments, shakeout, sign-off, rollback, ownership on full payment. Have a lawyer review the standard terms before the first real client.</p>
+    <div class="row-btns"><button class="btn small ghost" type="submit">Save draft</button>
+      <button class="btn small" type="button" id="plan-send" ${pl?.status === "draft" && ready ? "" : "disabled"}>Send plan and agreement</button>
+      ${planEdit ? `<button class="btn ghost small" type="button" id="plan-cancel">Cancel</button>` : ""}</div>
+    <p class="muted small">${!ready ? "Sending opens once the client has set up their account." : pl?.status !== "draft" ? "Save the draft, then send it." : "The client gets an email and signs in the portal. The first stage’s invoice goes out when they sign."}</p>
+  </form>`;
+}
+
+const stageRow = (s) => `<div class="pl-stage">
+  <label>Stage<input name="name" value="${esc(s.name)}" required></label>
+  <label>Kind<select name="kind">${KIND_OPTS.map(([k, l]) => `<option value="${k}"${k === s.kind ? " selected" : ""}>${l}</option>`).join("")}</select></label>
+  <label>Paid at start ($)<input name="amount" type="number" min="0" step="1" value="${esc(s.amount)}" required></label>
+  <label>Target date<input name="target" type="date" value="${esc(s.target)}"></label>
+  <label class="pl-what">Delivers<input name="deliverables" value="${esc(s.deliverables)}"></label>
+  <button type="button" class="q-del" aria-label="Remove stage" title="Remove stage">×</button></div>`;
+
+function planSummary(pl) {
+  const total = pl.stages.reduce((t, s) => t + s.amount, 0) + pl.finalAmount;
+  return `${pl.summary ? `<p>${esc(pl.summary)}</p>` : ""}<div class="tbl"><table class="pl-table"><thead><tr><th>Stage</th><th>Delivers</th><th class="n">Paid at start</th><th>Status</th></tr></thead><tbody>
+    ${pl.stages.map((s) => { const [l, t] = SSTATUS[s.status] || [s.status, "muted"];
+      return `<tr><td><b>${esc(s.name)}</b>${s.target ? `<br><span class="muted small">target ${day(s.target)}</span>` : ""}</td><td>${esc(s.deliverables)}</td><td class="n">${cents(s.amount)}</td>
+      <td><span class="st ${t}">${l}</span>${s.invoice ? ` <a class="small" href="invoice.html?n=${encodeURIComponent(s.invoice)}">${esc(s.invoice)}</a>` : ""}</td></tr>`; }).join("")}
+    <tr><td><b>Final payment</b></td><td>After production sign-off (${pl.shakeoutDays}-day shakeout)</td><td class="n">${cents(pl.finalAmount)}</td><td>${pl.finalInvoice ? `<a class="small" href="invoice.html?n=${encodeURIComponent(pl.finalInvoice)}">${esc(pl.finalInvoice)}</a>` : ""}</td></tr>
+    <tr><td colspan="2"><b>Total</b>${pl.careMonthly ? ` <span class="muted small">+ care plan ${cents(pl.careMonthly)}/month</span>` : ""}</td><td class="n"><b>${cents(total)}</b></td><td></td></tr></tbody></table></div>`;
+}
+
+function stagesCard(p) {
+  const pl = p.plan, sh = p.shakeout;
+  const cur = pl.stages.findIndex((s) => s.status === "active");
+  const last = pl.stages.length - 1;
+  const btns = [];
+  if (p.status === "active" && !sh && cur >= 0 && cur < last) btns.push(`<button type="button" class="btn small" id="stage-finish">Finish “${esc(pl.stages[cur].name)}” and invoice the next stage</button>`);
+  if (p.status === "active" && !sh && (cur === last || pl.stages.every((s) => s.status === "done"))) btns.push(`<button type="button" class="btn small" id="deploy">Deployed to production: start the ${pl.shakeoutDays}-day shakeout</button>`);
+  if (sh?.canRollBack) btns.push(`<button type="button" class="btn small danger" id="rollback">Record rollback</button>`);
+  const shk = sh ? `<div class="shk ${sh.rolledBack ? "bad" : sh.signedOff ? "ok" : sh.ended ? "bad" : ""}">
+      <b>Production shakeout</b> started ${stampAt(sh.started)}, ${sh.ended ? "ended" : "ends"} ${stampAt(sh.ends)}.
+      ${sh.signedOff ? `Signed off ${stampAt(sh.signedOff)} by ${esc(sh.signedOffBy)}.` : sh.ended ? "<b>Ended without sign-off.</b>" : "Waiting for the client’s sign-off."}
+      ${sh.finalInvoice ? ` Final invoice ${esc(sh.finalInvoice)}: ${sh.paid ? "paid" : "not paid yet"}.` : ""}
+      ${sh.rolledBack ? ` <b>Rolled back ${stampAt(sh.rolledBack)}.</b>` : sh.canRollBack ? " Per the agreement you can roll back now." : ""}</div>` : "";
+  return `<div class="card adm-card"><h3>Plan <span class="muted small">signed ${stampAt(pl.signedAt)} by ${esc(pl.signedBy)} · version ${pl.version}</span></h3>
+    ${planSummary(pl)}${shk}
+    ${btns.length ? `<div class="row-btns">${btns.join("")}</div>` : ""}
+    <details><summary class="small">The signed agreement</summary><pre class="agreement">${esc(pl.agreement)}</pre></details></div>`;
+}
+
+function reportForm(p) {
+  const cur = p.plan.stages.find((s) => s.status === "active");
+  return `<form class="card adm-card" id="report-form">
+    <h3>Post a status report${cur ? ` <span class="muted small">filed under ${esc(cur.name)}</span>` : ""}</h3>
+    <p class="muted small">The client gets an email saying there’s a new report; the report itself stays in the portal. You’ll see when they first open it.</p>
+    <div class="adm-fields">
+      <label class="wide">Title<input name="title" required placeholder="e.g. Week 3: orders screen ready to try"></label>
+      <label class="wide">Summary<textarea name="summary" rows="3" required></textarea></label>
+      <label>Done<textarea name="done" rows="3"></textarea></label>
+      <label>Next<textarea name="next" rows="3"></textarea></label>
+      <label>Needed from you (the client)<textarea name="needs" rows="2" placeholder="Leave blank if nothing"></textarea></label>
+      <label>Stage progress (%)<input name="progress" type="number" min="0" max="100" value="${p.progress ?? ""}"></label>
+      <label class="wide">Links (https, one per line)<textarea name="links" rows="2" placeholder="Screenshots, demo link, documents"></textarea></label>
+    </div>
+    <div class="row-btns"><button class="btn small" type="submit">Post report</button></div></form>`;
+}
+
+function reportBits(h) {
+  const d = h.details || {};
+  const row = (k, v) => v ? `<p class="small"><b>${k}:</b> ${esc(v)}</p>` : "";
+  return `${row("Done", d.done)}${row("Next", d.next)}${row("Needed from the client", d.needs)}${d.progress != null ? row("Progress", d.progress + "%") : ""}
+    ${(d.links || []).map((u) => `<a class="small" href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a>`).join("<br>")}
+    <p class="small ${h.read ? "muted" : "warn-text"}">${h.read ? `Opened by the client ${stampAt(h.read)}` : "Not opened by the client yet"}</p>`;
+}
+
+function wirePlan(p) {
+  const f = el.querySelector("#plan-form");
+  if (f) {
+    const box = f.querySelector("#pl-stages");
+    const bindDel = () => box.querySelectorAll(".q-del").forEach((x) => x.onclick = () => { if (box.children.length > 1) x.parentElement.remove(); });
+    bindDel();
+    f.querySelector("#pl-add").onclick = () => { box.insertAdjacentHTML("beforeend", stageRow({ name: "", kind: "build", amount: "", deliverables: "", target: "" })); bindDel(); };
+    const collect = () => ({ id: p.id, summary: f.summary.value, finalAmount: f.finalAmount.value, shakeoutDays: f.shakeoutDays.value, careMonthly: f.careMonthly.value,
+      stages: [...box.children].map((r) => Object.fromEntries([...r.querySelectorAll("input,select")].map((i) => [i.name, i.value]))) });
+    f.onsubmit = (e) => { e.preventDefault(); planEdit = false; run(() => api("plan-save", collect()), "Plan saved as a draft."); };
+    f.querySelector("#plan-send").onclick = () => {
+      if (!confirm(`Send the plan and agreement to ${p.owner}? They'll get an email and can sign in the portal.`)) return;
+      run(() => api("plan-send", { id: p.id }), `Sent. ${p.owner} can now review and sign.${sentNote()}`);
+    };
+    const c = f.querySelector("#plan-cancel"); if (c) c.onclick = () => { planEdit = false; render(); };
+  }
+  const rv = el.querySelector("#plan-revise"); if (rv) rv.onclick = () => { planEdit = true; render(); };
+  const sf = el.querySelector("#stage-finish");
+  if (sf) sf.onclick = () => confirm("Mark this stage finished? The next stage's invoice goes to the client.") && run(() => api("stage-finish", { id: p.id }), "Stage finished. The next stage is underway or invoiced.");
+  const dp = el.querySelector("#deploy");
+  if (dp) dp.onclick = () => {
+    const note = prompt("Note for the client (optional), e.g. where it's live:", "");
+    if (note === null) return;
+    run(() => api("deploy", { id: p.id, note }), "Shakeout started. The client has been asked to test and sign off.");
+  };
+  const rb = el.querySelector("#rollback");
+  if (rb) rb.onclick = () => {
+    const note = prompt("You've rolled the production changes back. Add a note for the timeline (optional):", "");
+    if (note === null) return;
+    run(() => api("rollback", { id: p.id, note }), "Rollback recorded and the client told.");
+  };
+  const rf = el.querySelector("#report-form");
+  if (rf) rf.onsubmit = (e) => { e.preventDefault(); run(() => api("report", { id: p.id, ...fields(rf) }), `Report posted. ${p.owner} has been emailed.${sentNote()}`); };
 }
 
 function quoteForm(p) {
@@ -225,10 +381,10 @@ function historyCard(p) {
   return `<div class="card adm-card"><h3>History <span class="muted small">(${p.history.length})</span></h3>
     <ol class="timeline">${p.history.map((h) => { const [label, tone] = KIND[h.kind] || [h.kind, "muted"]; return `
       <li class="tl ${tone}"><span class="tl-dot"></span>
-        <div class="tl-meta"><time>${day(h.date)}</time><span class="tl-kind">${label}</span>
+        <div class="tl-meta"><time datetime="${esc(h.at || h.date)}">${stamp(h)}</time>${h.by ? `<span class="muted small">by ${esc(h.by)}</span>` : ""}<span class="tl-kind">${label}</span>
           ${accepted(p) || CLIENT_SEES.includes(h.kind) ? "" : `<span class="hidden-tag">hidden until accepted</span>`}
           ${h.kind === "payment" ? "" : `<button type="button" class="linkbtn tl-del" data-del="${h.id}">Delete</button>`}</div>
-        <h4>${esc(h.title)}</h4>${h.body ? `<p>${esc(h.body)}</p>` : ""}</li>`; }).join("")}</ol></div>`;
+        <h4>${esc(h.title)}</h4>${h.body ? `<p>${esc(h.body)}</p>` : ""}${h.kind === "report" ? reportBits(h) : ""}</li>`; }).join("")}</ol></div>`;
 }
 
 function details(p) {
@@ -320,8 +476,7 @@ function wireAccounts() {
   };
   el.querySelectorAll("[data-resend]").forEach((b) => b.onclick = () =>
     run(async () => { await api("invite-resend", { email: b.dataset.resend }); await load(); el.querySelector("#accounts").open = true; }, `New invite sent to ${b.dataset.resend}.${sentNote()}`));
-  const sl = el.querySelector("[data-send-login]");
-  if (sl) sl.onclick = () => run(async () => { await api("send-login", { id: sl.dataset.sendLogin }); await load(); }, `Login invite sent to ${cur()?.owner}.${sentNote()}`);
+  el.querySelectorAll("[data-send-login]").forEach((sl) => sl.onclick = () => run(async () => { await api("send-login", { id: sl.dataset.sendLogin }); await load(); }, `Login invite sent to ${cur()?.owner}.${sentNote()}`));
 }
 
 // The tester list (logins with role "tester") and their practice projects.
@@ -499,6 +654,7 @@ function wire(p) {
   wireAccounts();
   if (!p) return;
   wireInvoices(p);
+  wirePlan(p);
   const note = () => el.querySelector("#act-note")?.value || "";
 
   el.querySelectorAll("[data-act]").forEach((b) => b.onclick = () => {
@@ -508,6 +664,9 @@ function wire(p) {
     if (act === "complete" && !confirm(`Mark “${p.title}” complete?`)) return;
     const body = { id: p.id, action: act, note: note() };
     if (act === "accept") body.date = el.querySelector("#acc-date").value;
+    if (act === "accept-request") return run(async () => { const out = await api("accept-request", { id: p.id, orgName: el.querySelector("#acc-org")?.value || "", note: note() }); await load(); return out; },
+      `Accepted. ${p.owner} has been emailed${account(p.owner)?.status === "active" ? "" : " an account invite"}.${sentNote()}`);
+    if (act === "deploy") return run(() => api("deploy", { id: p.id, note: prompt("Note for the client (optional), e.g. where it's live:", "") || "" }), "Redeployed. The shakeout has restarted.");
     run(() => api("action", body), { review: "Moved to review.", accept: "Accepted. The client now sees the full project.", decline: "Declined.", complete: "Marked complete.", reopen: "Reopened." }[act]);
   });
 

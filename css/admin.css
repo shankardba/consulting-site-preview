@@ -107,3 +107,16 @@ label.inline input{font:15px var(--body);padding:6px 8px;border:1px solid var(--
 .adm-invite label{display:grid;gap:4px;font-size:14px;font-weight:600}
 @media (max-width:720px){.adm-invite{grid-template-columns:minmax(0,1fr)}}
 .adm-login{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 0}
+.adm-dialog label.check{display:flex;gap:8px;align-items:center;font-weight:400}
+.adm-dialog label.check input{width:auto}
+/* Plan, stages, shakeout */
+.pl-stages{display:grid;gap:10px;margin:8px 0}
+.pl-stage{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.9fr) minmax(0,1fr) minmax(0,2fr) auto;gap:8px;align-items:end;border-top:1px solid var(--line);padding-top:10px}
+.pl-stage label{display:grid;gap:4px;font-size:13px;font-weight:600}
+@media (max-width:900px){.pl-stage{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.pl-stage .pl-what{grid-column:1 / -1}}
+.pl-table{min-width:560px}
+.agreement{white-space:pre-wrap;word-break:break-word;font:13px/1.5 var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px;max-height:420px;overflow:auto}
+.shk{border-left:4px solid var(--brand);background:var(--surface-2);padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;font-size:15px}
+.shk.ok{border-color:var(--ok, #2f7d4f)} .shk.bad{border-color:var(--bad)}
+.warn-text{color:var(--warn, #8a5a12)}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
