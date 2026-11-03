@@ -70,3 +70,22 @@ label.inline input{font:15px var(--body);padding:6px 8px;border:1px solid var(--
 
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;margin:0;padding:12px 18px;border-radius:999px;background:var(--ink);color:var(--paper);font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:calc(100% - 32px)}
 .toast.bad{background:var(--bad);color:#fff}
+
+/* Money: header totals and the invoices card */
+.adm-money{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:14px;color:var(--muted)}
+.adm-money b{font:700 15px var(--mono);color:var(--ink);font-variant-numeric:tabular-nums;margin-left:4px}
+.adm-money .late b{color:var(--bad)}
+.ai-row{display:grid;gap:8px;border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;background:var(--paper)}
+.ai-top{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+.ai-top .inv-amt{margin-left:auto}
+.ai-lines,.ai-pays{list-style:none;margin:0;padding:0;font-size:14px;display:grid;gap:4px}
+.ai-lines li,.ai-pays li{display:flex;gap:10px;justify-content:space-between}
+.ai-lines span:last-child,.ai-pays b{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.ai-pays{color:var(--muted)}
+.ai-form{display:grid;gap:10px;border-top:1px dashed var(--line);padding-top:10px}
+.ai-suggest{display:flex;flex-wrap:wrap;gap:6px}
+.chip-btn{font:600 13px var(--body);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.chip-btn:hover,.chip-btn:focus-visible{border-color:var(--brand)}
+.chip-btn.used{color:var(--muted);text-decoration:line-through}
+.test-tag{font:600 11px/1 var(--mono);padding:3px 6px;border-radius:4px;background:var(--rel-soft);color:var(--rel)}
+.late-text{color:var(--bad);font-weight:600}

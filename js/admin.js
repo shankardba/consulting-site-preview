@@ -1,4 +1,5 @@
-// Admin screen: every project, its status actions, delivery details and history. Talks to /api/admin/*.
+// Admin screen: every project, its status actions, invoices, delivery details and history. Talks to /api/admin/*.
+import { cents, invoiceLabel, METHOD, moneySummary } from "./money.js";
 const el = document.getElementById("admin");
 const toastEl = document.getElementById("toast");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -10,7 +11,10 @@ const STATUS = {
   active: ["In progress", "active"], care: ["Care plan", "active"], complete: ["Complete", "done"], declined: ["Declined", "muted"],
 };
 const KIND = { proposal: ["Request", "rel"], decision: ["Decision", "sheet"], report: ["Progress report", "doc"],
-  milestone: ["Milestone", "graph"], meeting: ["Meeting", "muted"], file: ["Deliverable", "doc"] };
+  milestone: ["Milestone", "graph"], meeting: ["Meeting", "muted"], file: ["Deliverable", "doc"],
+  invoice: ["Invoice", "rel"], payment: ["Payment", "sheet"] };
+const CLIENT_SEES = ["proposal", "decision", "invoice", "payment"]; // before acceptance
+const BILLABLE = ["approved", "active", "care", "complete"];
 const VIEWS = [
   ["open", "Needs a reply", (p) => ["submitted", "review"].includes(p.status)],
   ["quoted", "Quote sent", (p) => p.status === "approved"],
@@ -25,6 +29,7 @@ const DEFAULT_QUOTE = [
 ];
 
 let meta = {}, projects = [], selected = location.hash.slice(1) || null, view = "open", quoting = false;
+let invOpen = false, payFor = null; // the new-invoice form, and which invoice's payment form is open
 
 async function api(path, body) {
   const res = await fetch("/api/admin/" + path, body
@@ -88,7 +93,7 @@ function render() {
   const p = cur();
   el.innerHTML = `
     <header class="portal-head">
-      <div><div class="eyebrow">Admin</div><h1>Projects</h1></div>
+      <div><div class="eyebrow">Admin</div><h1>Projects</h1>${summary()}</div>
       <div class="row-btns"><button class="btn small" id="new-btn" type="button">New project</button>
         <a class="btn ghost small" href="portal.html">Client view</a>
         <button class="btn ghost small" id="logout" type="button">Sign out</button></div>
@@ -108,7 +113,7 @@ function row(p) {
   const last = p.history[0];
   return `<button type="button" class="adm-row" data-id="${esc(p.id)}" aria-current="${p.id === selected}">
     <span class="ar-top"><span class="ar-title">${esc(p.title)}</span>${pill(p.status)}</span>
-    <span class="ar-sub">${esc(p.business || p.owner)} · ${esc(p.id)}${p.sample ? " · sample" : ""}</span>
+    <span class="ar-sub">${esc(p.business || p.owner)} · ${esc(p.id)}${p.sample ? " · sample" : ""}${p.test ? " · test data" : ""}${owed(p)}</span>
     ${last ? `<span class="ar-last">${day(last.date)} · ${esc(last.title)}</span>` : ""}</button>`;
 }
 
@@ -117,11 +122,12 @@ function editor(p) {
     <div class="card adm-card">
       <div class="proj-top">
         <div><span class="chip svc-chip">${esc(p.service || "No service set")}</span><h2>${esc(p.title)}</h2>
-          <p class="muted small">${esc(p.id)} · client <b>${esc(p.owner)}</b>${p.business ? ` · ${esc(p.business)}` : ""}${p.sample ? ` · <span class="sample-tag">sample</span>` : ""}</p></div>
+          <p class="muted small">${esc(p.id)} · client <b>${esc(p.owner)}</b>${p.business ? ` · ${esc(p.business)}` : ""}${p.sample ? ` · <span class="sample-tag">sample</span>` : ""}${p.test ? ` · <span class="test-tag">test data</span>` : ""}</p></div>
         ${pill(p.status)}
       </div>
       ${actions(p)}
     </div>
+    ${BILLABLE.includes(p.status) || p.invoices.length ? invoicesCard(p) : ""}
     ${accepted(p) && p.status !== "complete" ? delivery(p) : ""}
     ${p.status !== "declined" ? postForm(p) : ""}
     ${historyCard(p)}
@@ -203,8 +209,8 @@ function historyCard(p) {
     <ol class="timeline">${p.history.map((h) => { const [label, tone] = KIND[h.kind] || [h.kind, "muted"]; return `
       <li class="tl ${tone}"><span class="tl-dot"></span>
         <div class="tl-meta"><time>${day(h.date)}</time><span class="tl-kind">${label}</span>
-          ${accepted(p) || ["proposal", "decision"].includes(h.kind) ? "" : `<span class="hidden-tag">hidden until accepted</span>`}
-          <button type="button" class="linkbtn tl-del" data-del="${h.id}">Delete</button></div>
+          ${accepted(p) || CLIENT_SEES.includes(h.kind) ? "" : `<span class="hidden-tag">hidden until accepted</span>`}
+          ${h.kind === "payment" ? "" : `<button type="button" class="linkbtn tl-del" data-del="${h.id}">Delete</button>`}</div>
         <h4>${esc(h.title)}</h4>${h.body ? `<p>${esc(h.body)}</p>` : ""}</li>`; }).join("")}</ol></div>`;
 }
 
@@ -224,10 +230,149 @@ function details(p) {
   </form>`;
 }
 
+// ---------- invoices ----------
+
+function summary() {
+  const m = moneySummary(projects, meta.today.slice(0, 7));
+  return `<div class="adm-money" aria-label="Money">
+    <span>Outstanding<b>${cents(m.outstanding)}</b></span>
+    <span class="${m.overdue ? "late" : ""}">Overdue<b>${cents(m.overdue)}</b></span>
+    <span>Received this month<b>${cents(m.received)}</b></span>
+    ${m.drafts ? `<span>Drafts<b>${m.drafts}</b></span>` : ""}</div>`;
+}
+
+function owed(p) {
+  const late = p.invoices.filter((i) => i.state === "overdue");
+  if (late.length) return ` · <span class="late-text">${cents(late.reduce((t, i) => t + i.balance, 0))} overdue</span>`;
+  const due = p.invoices.filter((i) => i.status === "sent" && i.balance > 0);
+  return due.length ? ` · ${cents(due.reduce((t, i) => t + i.balance, 0))} due` : "";
+}
+
+const invPill = (i) => { const [label, tone] = invoiceLabel(i); return `<span class="st ${tone}">${esc(label)}</span>`; };
+
+// Ready-made lines from the quote: 50/50 terms split in two, monthly lines billed for this month.
+function suggestions(p) {
+  const billed = new Set(p.invoices.filter((i) => i.status !== "void").flatMap((i) => i.lines.map((l) => l.item)));
+  const month = new Date(meta.today + "T00:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "long", year: "numeric" });
+  const out = [];
+  for (const l of p.price) {
+    if (l.per === "month") out.push({ item: `${l.item}: ${month}`, amount: l.amount });
+    else if (/50\s*%|50\/50/.test(l.terms)) {
+      const half = Math.round(l.amount * 50) / 100;
+      out.push({ item: `${l.item} deposit (50%)`, amount: half }, { item: `${l.item} final (50%)`, amount: l.amount - half });
+    } else out.push({ item: l.item, amount: l.amount });
+  }
+  return out.map((x) => ({ ...x, used: billed.has(x.item) }));
+}
+
+function invoicesCard(p) {
+  const sugg = BILLABLE.includes(p.status) ? suggestions(p) : [];
+  return `<div class="card adm-card" id="inv-card">
+    <div class="proj-top"><h3>Invoices <span class="muted small">(${p.invoices.length})</span></h3>
+      ${BILLABLE.includes(p.status) && !invOpen ? `<button type="button" class="btn small" id="inv-new">New invoice</button>` : ""}</div>
+    ${invOpen ? invForm(sugg) : ""}
+    ${p.invoices.map(invRow).join("") || (invOpen ? "" : `<p class="muted small">No invoices yet.${sugg.length ? " Start one from the quote." : ""}</p>`)}
+    <p class="muted small">${meta.payTo ? "Invoices show your bank transfer and check details." : "Bank transfer and check details aren’t set yet (PAY_TO), so invoices say they will follow."} Card and PayPal payments arrive in phase 2.</p>
+  </div>`;
+}
+
+function invForm(sugg) {
+  return `<form class="ai-form" id="inv-form">
+    ${sugg.length ? `<div><span class="muted small">From the quote:</span><div class="ai-suggest">${sugg.map((x, i) =>
+      `<button type="button" class="chip-btn${x.used ? " used" : ""}" data-sugg="${i}" title="${x.used ? "Already on an invoice" : "Add this line"}">${esc(x.item)} · ${cents(x.amount * 100)}</button>`).join("")}</div></div>` : ""}
+    <div class="q-lines" id="inv-lines">${invLine({ item: "", amount: "" })}</div>
+    <button type="button" class="linkbtn" id="inv-add">+ Add a line</button>
+    <div class="adm-fields">
+      <label>Due date (optional)<input type="date" name="due"></label>
+      <label class="wide">Note on the invoice (optional)<input name="note" maxlength="500" placeholder="e.g. Thank you for your business."></label>
+    </div>
+    <p class="muted small">Saved as a draft. The client sees it once you send it; it’s due ${meta.dueDays} days after sending unless you set a date.</p>
+    <div class="row-btns"><button class="btn small" type="submit">Save draft</button><button class="btn ghost small" type="button" id="inv-cancel">Cancel</button></div>
+  </form>`;
+}
+
+const invLine = (l) => `<div class="q-line">
+  <label class="q-terms">Description<input name="item" value="${esc(l.item)}" required></label>
+  <label>Amount ($)<input name="amount" inputmode="decimal" value="${esc(l.amount)}" required></label>
+  <button type="button" class="q-del" aria-label="Remove line" title="Remove line">×</button></div>`;
+
+function invRow(i) {
+  const open = i.status === "sent" && i.balance > 0;
+  const btn = (act, label, cls = "ghost") => `<button type="button" class="btn small ${cls}" data-inv="${act}" data-n="${esc(i.number)}">${label}</button>`;
+  return `<div class="ai-row">
+    <div class="ai-top"><span class="inv-no">${esc(i.number)}</span>${invPill(i)}
+      ${i.issued ? `<span class="muted small">sent ${day(i.issued)}${i.due ? ` · due ${day(i.due)}` : ""}</span>` : i.due ? `<span class="muted small">due ${day(i.due)}</span>` : ""}
+      <span class="inv-amt">${cents(i.total)}</span></div>
+    <ul class="ai-lines">${i.lines.map((l) => `<li><span>${esc(l.item)}</span><span>${cents(l.amount)}</span></li>`).join("")}</ul>
+    ${i.payments.length ? `<ul class="ai-pays">${i.payments.map((x) => `<li><span>${day(x.date)} · ${esc(METHOD[x.method] || x.method)}${x.reference ? ` ${esc(x.reference)}` : ""}</span>
+      <span><b>${cents(x.amount)}</b> ${x.provider === "manual" ? `<button type="button" class="linkbtn tl-del" data-unpay="${x.id}">Remove</button>` : ""}</span></li>`).join("")}
+      ${i.balance > 0 && i.status === "sent" ? `<li><span>Still due</span><b>${cents(i.balance)}</b></li>` : ""}</ul>` : ""}
+    ${payFor === i.number ? payForm(i) : ""}
+    <div class="row-btns">
+      ${i.status === "draft" ? btn("send", "Send to client", "") : ""}
+      ${open && payFor !== i.number ? btn("pay", "Record payment", "") : ""}
+      <a class="btn ghost small" href="invoice.html?n=${encodeURIComponent(i.number)}" target="_blank" rel="noopener">View${i.status === "draft" ? " draft" : ""}</a>
+      ${i.status !== "void" && !i.payments.length ? btn("void", i.status === "draft" ? "Delete draft" : "Cancel invoice", "ghost danger") : ""}
+    </div></div>`;
+}
+
+function payForm(i) {
+  return `<form class="ai-form" id="pay-form" data-n="${esc(i.number)}">
+    <div class="adm-fields">
+      <label>Amount ($)<input name="amount" inputmode="decimal" value="${(i.balance / 100).toFixed(2)}" required></label>
+      <label>How<select name="method">${meta.methods.filter((m) => ["bank_transfer", "check"].includes(m.id)).map((m) => `<option value="${m.id}">${esc(m.label)}</option>`).join("")}</select></label>
+      <label>Received on<input type="date" name="date" value="${meta.today}" required></label>
+      <label>Reference (optional)<input name="reference" maxlength="80" placeholder="Check # or transfer ref"></label>
+    </div>
+    <div class="row-btns"><button class="btn small" type="submit">Record payment</button><button class="btn ghost small" type="button" id="pay-cancel">Cancel</button></div>
+  </form>`;
+}
+
+function wireInvoices(p) {
+  const card = el.querySelector("#inv-card");
+  if (!card) return;
+  card.querySelector("#inv-new")?.addEventListener("click", () => { invOpen = true; render(); el.querySelector("#inv-lines input")?.focus(); });
+  const f = card.querySelector("#inv-form");
+  if (f) {
+    const lines = f.querySelector("#inv-lines");
+    const bindDel = () => lines.querySelectorAll(".q-del").forEach((x) => x.onclick = () => { if (lines.children.length > 1) x.parentElement.remove(); });
+    const add = (l) => {
+      const blank = [...lines.children].find((r) => !r.querySelector("[name=item]").value && !r.querySelector("[name=amount]").value);
+      if (blank) { blank.querySelector("[name=item]").value = l.item; blank.querySelector("[name=amount]").value = l.amount; }
+      else { lines.insertAdjacentHTML("beforeend", invLine(l)); bindDel(); }
+    };
+    bindDel();
+    const sugg = suggestions(p);
+    f.querySelectorAll("[data-sugg]").forEach((b) => b.onclick = () => { const x = sugg[+b.dataset.sugg]; add({ item: x.item, amount: x.amount }); b.classList.add("used"); });
+    f.querySelector("#inv-add").onclick = () => { lines.insertAdjacentHTML("beforeend", invLine({ item: "", amount: "" })); bindDel(); lines.lastElementChild.querySelector("input").focus(); };
+    f.querySelector("#inv-cancel").onclick = () => { invOpen = false; render(); };
+    f.onsubmit = (e) => {
+      e.preventDefault();
+      const ls = [...lines.children].map((r) => ({ item: r.querySelector("[name=item]").value, amount: r.querySelector("[name=amount]").value }));
+      run(() => api("invoice-create", { id: p.id, lines: ls, due: f.due.value, note: f.note.value }), "Draft saved. Send it when it’s ready.");
+    };
+  }
+  card.querySelectorAll("[data-inv]").forEach((b) => b.onclick = () => {
+    const n = b.dataset.n, act = b.dataset.inv;
+    if (act === "pay") { payFor = n; render(); return; }
+    if (act === "send" && !confirm(`Send invoice ${n}? The client will see it in their portal.`)) return;
+    if (act === "void" && !confirm(b.textContent.startsWith("Delete") ? `Delete draft ${n}?` : `Cancel invoice ${n}? The client will see it as cancelled.`)) return;
+    run(() => api(act === "send" ? "invoice-send" : "invoice-void", { number: n }), act === "send" ? "Invoice sent." : "Done.");
+  });
+  const pf = card.querySelector("#pay-form");
+  if (pf) {
+    pf.querySelector("#pay-cancel").onclick = () => { payFor = null; render(); };
+    pf.onsubmit = (e) => { e.preventDefault(); run(() => api("payment-record", { number: pf.dataset.n, ...fields(pf) }), "Payment recorded."); };
+  }
+  card.querySelectorAll("[data-unpay]").forEach((b) => b.onclick = () => {
+    if (confirm("Remove this payment? Its entry in the client’s history goes too.")) run(() => api("payment-remove", { paymentId: b.dataset.unpay }), "Payment removed.");
+  });
+}
+
 // ---------- behaviour ----------
 
 async function run(fn, ok) {
-  try { const out = await fn(); if (out?.project) { replace(out.project); follow(); } quoting = false; render(); if (ok) toast(ok); }
+  try { const out = await fn(); if (out?.project) { replace(out.project); follow(); } quoting = false; invOpen = false; payFor = null; render(); if (ok) toast(ok); }
   catch (e) { if (e.message !== "signed out") toast(e.message, true); }
 }
 
@@ -241,10 +386,11 @@ function wire(p) {
   el.querySelector("#new-btn").onclick = openNew;
   el.querySelectorAll("[data-view]").forEach((b) => b.onclick = () => { view = b.dataset.view; render(); });
   el.querySelectorAll("[data-id]").forEach((b) => b.onclick = () => {
-    selected = b.dataset.id; quoting = false; history.replaceState(null, "", "#" + selected); render();
+    selected = b.dataset.id; quoting = false; invOpen = false; payFor = null; history.replaceState(null, "", "#" + selected); render();
     if (matchMedia("(max-width: 900px)").matches) el.querySelector(".adm-main").scrollIntoView({ behavior: "smooth" });
   });
   if (!p) return;
+  wireInvoices(p);
   const note = () => el.querySelector("#act-note")?.value || "";
 
   el.querySelectorAll("[data-act]").forEach((b) => b.onclick = () => {

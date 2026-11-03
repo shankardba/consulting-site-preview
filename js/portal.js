@@ -1,4 +1,5 @@
 // Client portal: loads /api/portal (needs the session cookie) and draws the signed-in client's projects.
+import { cents, invoiceLabel } from "./money.js";
 const el = document.getElementById("portal");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const day = (d) => d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : "";
@@ -43,6 +44,7 @@ function render() {
       <div><div class="eyebrow">Client portal</div><h1>${first ? `Welcome back, ${esc(first)}` : "Your projects"}</h1></div>
       <div class="row-btns">${user.admin ? `<a class="btn small" href="admin.html">Admin</a>` : ""}<button class="btn ghost small" id="logout" type="button">Sign out</button></div>
     </header>
+    ${projects.some((x) => x.test) ? `<p class="sample-note">Test data: your real projects with made-up prices, invoices and payments. Only your login can see them.</p>` : ""}
     ${projects.some((x) => x.sample) ? `<p class="sample-note">Sample projects: the business, people and figures are invented so you can see how the portal works.</p>` : ""}
     ${projects.length ? `<div class="proj-list" role="tablist" aria-label="Your projects">${projects.map(projTab).join("")}</div>` : `<div class="card portal-msg"><p>No projects yet. Once a proposal is accepted, it appears here.</p></div>`}
     ${p ? detail(p, stages) : ""}`;
@@ -86,7 +88,7 @@ function detail(p, stages) {
     ${p.next ? `<div class="next-up"><span class="eyebrow">Next</span><b>${day(p.next.date)}</b><span>${esc(p.next.text)}</span></div>` : ""}
     <div class="proj-grid">
       <div>${history(p)}</div>
-      ${p.price ? `<aside>${pricing(p)}</aside>` : ""}
+      ${p.price || p.invoices?.length ? `<aside>${pricing(p)}</aside>` : ""}
     </div>
   </section>`;
 }
@@ -102,9 +104,17 @@ function history(p) {
 }
 
 function pricing(p) {
-  return `<div class="side-card"><h3>Price and payments</h3>
-    <ul class="price-list">${p.price.map((x) => `<li><span>${esc(x.item)}</span><b>${money(x.amount)}${x.per ? `<small>/${esc(x.per)}</small>` : ""}</b><em>${esc(x.terms)}</em></li>`).join("")}</ul>
-    <p class="muted small">Invoices and payment receipts will appear here and in your project history.</p></div>`;
+  const invs = p.invoices || [];
+  const owing = invs.filter((i) => i.status === "sent" && i.balance > 0);
+  return `<div class="side-card"><h3>${p.price ? "Price and payments" : "Invoices"}</h3>
+    ${p.price ? `<ul class="price-list">${p.price.map((x) => `<li><span>${esc(x.item)}</span><b>${money(x.amount)}${x.per ? `<small>/${esc(x.per)}</small>` : ""}</b><em>${esc(x.terms)}</em></li>`).join("")}</ul>` : ""}
+    ${invs.length ? `<h4 class="small">Invoices</h4><ul class="inv-list">${invs.map((i) => { const [label, tone] = invoiceLabel(i); return `<li>
+      <span class="inv-no">${esc(i.number)}</span><span class="inv-amt">${cents(i.total)}</span>
+      <span class="inv-what">${esc(i.lines.map((l) => l.item).join(", "))}</span>
+      <span class="st ${tone}">${esc(label)}</span><a href="invoice.html?n=${encodeURIComponent(i.number)}">View${i.state === "paid" ? " receipt" : " invoice"}</a></li>`; }).join("")}</ul>`
+      : `<p class="muted small">Invoices and payment receipts will appear here and in your project history.</p>`}
+    ${owing.length ? `<p class="pay-how"><b>How to pay:</b> ${data.payTo ? esc(data.payTo) : "bank transfer or check. Our details are on each invoice once our business account is open; until then, reply to the invoice email and we’ll send them."}</p>` : ""}
+  </div>`;
 }
 
 async function logout() {
