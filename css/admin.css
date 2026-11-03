@@ -120,3 +120,18 @@ label.inline input{font:15px var(--body);padding:6px 8px;border:1px solid var(--
 .shk.ok{border-color:var(--ok, #2f7d4f)} .shk.bad{border-color:var(--bad)}
 .warn-text{color:var(--warn, #8a5a12)}
 .btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+
+/* integration: meetings */
+.mtg-list{list-style:none;margin:0;padding:0}
+.mtg-item{padding:10px 0;border-top:1px solid var(--line)}
+.mtg-item:first-child{border-top:0}
+.mtg-item ul{margin:4px 0 6px;padding-left:18px}
+.mtg-note{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
+/* integration: kuma */
+.kuma-line{grid-template-columns:minmax(110px,.8fr) minmax(180px,1.6fr) minmax(140px,1.1fr) minmax(110px,.6fr) auto}
+.kuma-table{min-width:640px}
+@media (max-width:640px){.kuma-line{grid-template-columns:1fr 1fr}}
+/* integration: paperless */
+.pl-list{list-style:none;margin:8px 0;padding:0}
+.pl-list li{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line)}
+.pl-list li:last-child{border-bottom:none}

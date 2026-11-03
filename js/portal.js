@@ -1,5 +1,6 @@
 // Client portal: loads /api/portal (needs the session cookie) and draws the signed-in client's projects.
 import { cents, invoiceLabel } from "./money.js";
+import * as X from "./integrations/index.js";
 const el = document.getElementById("portal");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const day = (d) => d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : "";
@@ -25,15 +26,22 @@ let asking = false;     // the "New request" form is open
 let data, selected, filter = "all", claimFor = null; // claimFor: the invoice whose "I've sent payment" form is open
 
 // POST a client action; the reply is this client's updated project.
+// What integration panels get (js/integrations/index.js).
+const xctx = () => ({ root: el, esc, day, meta: { integrations: data.integrations || [] }, toast: () => {}, reload: load,
+  api: async (name, op, body) => { const out = await act(`/api/x/${name}/${op}`, body); render(); return out; },
+  done: () => render() });
+
 async function act(path, body) {
   const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
   if (!res) throw new Error("Couldn’t reach the server. Check your connection and try again.");
   if (res.status === 401) { location.replace("login.html?expired"); throw new Error(""); }
   const out = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(out.error || "Something went wrong. Please try again.");
+  if (!out.project) return out;
   const i = data.projects.findIndex((x) => x.id === out.project.id);
   if (i >= 0) data.projects[i] = out.project;
   else { data.projects.unshift(out.project); selected = out.project.id; } // a new request
+  return out;
 }
 
 async function load() {
@@ -77,7 +85,7 @@ function render() {
   }
   el.querySelectorAll("[data-proj]").forEach((b) => b.onclick = () => { selected = b.dataset.proj; filter = "all"; render(); });
   el.querySelectorAll("[data-filter]").forEach((b) => b.onclick = () => { filter = b.dataset.filter; render(); });
-  if (p) wireActions(p);
+  if (p) { wireActions(p); X.wireClient(p, xctx()); }
   el.querySelector("#tester-new")?.addEventListener("click", async (e) => {
     if (projects.some((x) => x.sandbox) && !confirm("Start over? Your practice project and its test payments are deleted and a fresh one is made.")) return;
     e.target.disabled = true;
@@ -190,6 +198,7 @@ function detail(p, stages) {
       : pending ? `<div class="callout">We’re reviewing this request and reply within two business days. Every step appears below with its date and time.</div>` : ""}
     ${p.status === "active" && p.stage === "approved" && !p.plan ? `<div class="callout">Thank you for accepting the quote. Work starts with discovery as soon as the first invoice is paid.</div>` : ""}
     ${p.plan?.status === "signed" ? deliveryPanel(p) : ""}
+    ${X.clientCards(p, xctx())}
     ${p.next ? `<div class="next-up"><span class="eyebrow">Next</span><b>${day(p.next.date)}</b><span>${esc(p.next.text)}</span></div>` : ""}
     <div class="proj-grid">
       <div>${history(p)}</div>

@@ -1,5 +1,6 @@
 // Admin screen: every project, its status actions, invoices, delivery details and history. Talks to /api/admin/*.
 import { cents, invoiceLabel, METHOD, moneySummary } from "./money.js";
+import * as X from "./integrations/index.js";
 const el = document.getElementById("admin");
 const toastEl = document.getElementById("toast");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -84,6 +85,10 @@ function follow() {
   if (p && !VIEWS.find(([id]) => id === view)[2](p)) view = VIEWS.find(([, , f]) => f(p))[0];
 }
 
+// What integration cards get (js/integrations/index.js).
+const xctx = () => ({ root: el, esc, toast, day, stampAt, meta, api: (name, op, body) => api(`x/${name}/${op}`, body),
+  done: (out) => { if (out?.project) replace(out.project); render(); }, reload: load });
+
 function replace(p) {
   const i = projects.findIndex((x) => x.id === p.id);
   if (i >= 0) projects[i] = p; else projects.unshift(p);
@@ -138,6 +143,7 @@ function editor(p) {
       ${actions(p)}
     </div>
     ${planCard(p)}
+    ${X.adminCards(p, xctx())}
     ${BILLABLE.includes(p.status) || p.invoices.length ? invoicesCard(p) : ""}
     ${p.plan?.status === "signed" && ["active", "care", "rolledback"].includes(p.status) ? reportForm(p) : ""}
     ${accepted(p) && p.status !== "complete" && !p.plan ? delivery(p) : ""}
@@ -655,6 +661,7 @@ function wire(p) {
   if (!p) return;
   wireInvoices(p);
   wirePlan(p);
+  X.wireAdmin(p, xctx());
   const note = () => el.querySelector("#act-note")?.value || "";
 
   el.querySelectorAll("[data-act]").forEach((b) => b.onclick = () => {

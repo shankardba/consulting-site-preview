@@ -1,4 +1,5 @@
 // status.html?t=CODE: the no-login status page emailed when a request comes in. Read-only.
+const safeUrl = (u) => /^https:\/\/[^\s"<>]+$/.test(String(u || "")) ? String(u) : "";
 const el = document.getElementById("status-page");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const day = (d) => d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : "";
@@ -50,7 +51,7 @@ async function load() {
       <span class="st ${tone}">${esc(s.status)}</span></header>
     ${s.inPortal ? `<div class="card portal-msg"><p><b>Your project has moved into your client portal.</b> Sign in to see the plan, agreement, invoices and status reports.</p>
       <p><a class="btn small" href="login.html">Sign in</a></p></div>` : ""}
-    ${s.status === "Under review" ? `<div class="card portal-msg"><p>We’re reviewing your request and will reply within two business days. This page updates as soon as anything changes.</p></div>` : ""}
+    ${s.status === "Under review" ? `<div class="card portal-msg"><p>We’re reviewing your request and will reply within two business days. This page updates as soon as anything changes.</p>${safeUrl(s.book) ? `<p>Prefer to talk it through? <a class="btn small" href="${esc(safeUrl(s.book))}" target="_blank" rel="noopener">Book a call</a></p>` : ""}</div>` : ""}
     <div class="card"><h2 class="status-h">Timeline</h2>
       <ol class="timeline">${s.history.map((h) => `<li class="tl rel"><span class="tl-dot"></span>
         <div class="tl-meta"><time datetime="${esc(h.at || h.date)}">${stamp(h)}</time></div>
