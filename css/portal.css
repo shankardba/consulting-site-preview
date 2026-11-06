@@ -164,3 +164,11 @@
 .callout.bad{border-color:var(--bad);background:var(--bad-soft)}
 .tl p.needs{background:var(--warn-soft);border-radius:6px;padding:4px 8px}
 #ask-form{margin-bottom:16px}
+
+/* Pay over time (Affirm / Klarna): kept apart from Pay online, opened on purpose, tick box before the button works. */
+.inv-overtime{width:100%;margin-top:8px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px}
+.inv-overtime summary{cursor:pointer;color:var(--muted)}
+.inv-overtime .ot-body{display:grid;gap:8px;padding:8px 0 4px}
+.inv-overtime .ot-body p{margin:0}
+.inv-overtime .ot-ok{display:flex;gap:8px;align-items:flex-start}
+.inv-overtime .btn{justify-self:start}

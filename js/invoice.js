@@ -1,5 +1,5 @@
 // Printable invoice / receipt: loads /api/invoice?n=<number>. Clients see their own sent invoices; admins see any.
-import { cents, invoiceLabel, METHOD } from "./money.js";
+import { cents, invoiceLabel, METHOD, methodLabel } from "./money.js";
 const el = document.getElementById("invoice");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const day = (d) => d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "long", day: "numeric", year: "numeric" }) : "";
@@ -45,7 +45,7 @@ function render({ invoice: i, project: p, payTo }) {
         <tbody>${i.lines.map((l) => `<tr><td>${esc(l.item)}</td><td class="n">${cents(l.amount)}</td></tr>`).join("")}</tbody>
         <tfoot>
           <tr><th>Total</th><td class="n">${cents(i.total)}</td></tr>
-          ${i.payments.map((x) => `<tr class="muted"><td>Paid ${day(x.date)} by ${esc((METHOD[x.method] || x.method).toLowerCase())}${x.reference ? ` (${esc(x.reference)})` : ""}${x.provider === "simulator" ? " · test payment, no money moved" : ""}</td><td class="n">−${cents(x.amount)}</td></tr>`).join("")}
+          ${i.payments.map((x) => `<tr class="muted"><td>Paid ${day(x.date)} by ${esc(x.via ? methodLabel(x) : methodLabel(x).toLowerCase())}${x.reference ? ` (${esc(x.reference)})` : ""}${x.provider === "simulator" ? " · test payment, no money moved" : ""}</td><td class="n">−${cents(x.amount)}</td></tr>`).join("")}
           ${i.status === "sent" ? `<tr class="inv-due"><th>${receipt ? "Balance" : "Amount due"}</th><td class="n">${cents(i.balance)}</td></tr>` : ""}
           ${(i.claims || []).map((c) => `<tr class="muted"><td>Sent ${day(c.date)} by ${esc((METHOD[c.method] || c.method).toLowerCase())}${c.reference ? ` (${esc(c.reference)})` : ""}, waiting for confirmation</td><td class="n">${cents(c.amount)}</td></tr>`).join("")}
         </tfoot>

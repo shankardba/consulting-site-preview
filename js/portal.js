@@ -108,8 +108,22 @@ function payButtons(p, i) {
   const methods = [...((p.pay || []).includes("online") && data.payOnline ? [data.payOnline] : []), ...(data.payMethods || []).filter((m) => (p.pay || []).includes(m.id))];
   if (i.processing?.length) return `<p class="muted small">Your bank payment of ${cents(i.processing[0].amount)} is clearing. It usually takes 3 to 5 business days, and this invoice updates by itself.</p>`;
   if (!methods.length || i.status !== "sent" || i.balance <= i.awaiting) return "";
-  return `<div class="inv-pay"><span class="muted">Pay ${cents(i.balance - i.awaiting)} online${data.stripeTest ? " (test mode: no money moves)" : ""}:</span>${methods.map((m) =>
-    `<button type="button" class="btn small${["bank_debit", "online"].includes(m.id) ? "" : " ghost"}" data-pay="${esc(i.number)}" data-method="${m.id}">${esc(m.label)}</button>`).join("")}</div>`;
+  const due = i.balance - i.awaiting;
+  return `<div class="inv-pay"><span class="muted">Pay ${cents(due)} online${data.stripeTest ? " (test mode: no money moves)" : ""}:</span>${methods.map((m) =>
+    `<button type="button" class="btn small${["bank_debit", "online"].includes(m.id) ? "" : " ghost"}" data-pay="${esc(i.number)}" data-method="${m.id}">${esc(m.label)}</button>`).join("")}
+    ${(p.pay || []).includes("over_time") && data.payOverTime && due >= data.payOverTime.min ? overTime(i) : ""}</div>`;
+}
+
+// Affirm / Klarna kept apart from the Pay button: a closed panel the client has to open, an explanation that it's a
+// loan from them, and a tick box before the button works. Their own page then shows only those two.
+function overTime(i) {
+  return `<details class="inv-overtime"><summary>Prefer to pay in instalments? (Affirm or Klarna)</summary>
+    <div class="ot-body">
+      <p>This is a separate option from Pay online. Affirm or Klarna pays us in full, and you repay them in instalments
+        under their own terms, which may include interest. They decide whether to approve you and may run a credit check.</p>
+      <label class="ot-ok"><input type="checkbox" data-ot-ok="${esc(i.number)}"> I understand this is a loan from Affirm or Klarna, not a card or bank payment.</label>
+      <button type="button" class="btn ghost small" data-pay="${esc(i.number)}" data-method="over_time" disabled>${esc(data.payOverTime.label)}</button>
+    </div></details>`;
 }
 
 function wireActions(p) {
@@ -136,7 +150,12 @@ function wireActions(p) {
     catch (err) { of.querySelector("button[type=submit]").disabled = false; fail(of, err); }
   };
   el.querySelectorAll("[data-claim]").forEach((b) => b.onclick = () => { claimFor = b.dataset.claim; render(); el.querySelector("#claim-form [name=method]")?.focus(); });
+  el.querySelectorAll("[data-ot-ok]").forEach((c) => c.onchange = () => {
+    const b = c.closest(".ot-body").querySelector("[data-method=over_time]");
+    b.disabled = !c.checked;
+  });
   el.querySelectorAll("[data-pay]").forEach((b) => b.onclick = async () => {
+    if (b.dataset.method === "over_time" && !b.closest(".ot-body")?.querySelector("[data-ot-ok]")?.checked) return;
     b.disabled = true;
     const res = await fetch("/api/pay/start", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ number: b.dataset.pay, method: b.dataset.method }) }).catch(() => null);
@@ -351,7 +370,7 @@ function pricing(p) {
       <span class="inv-no">${esc(i.number)}</span><span class="inv-amt">${cents(i.total)}</span>
       <span class="inv-what">${esc(i.lines.map((l) => l.item).join(", "))}</span>
       <span class="st ${tone}">${esc(text)}</span><a href="invoice.html?n=${encodeURIComponent(i.number)}">View${i.state === "paid" ? " receipt" : " invoice"}</a>
-      ${i.declined ? `<p class="inv-declined">Your last payment by ${esc(i.declined.method === "paypal" ? "PayPal" : i.declined.method === "card" ? "card" : "bank account")} didn’t go through${i.declined.date ? ` (${day(i.declined.date)})` : ""}. Try again or use another method.</p>` : ""}
+      ${i.declined ? `<p class="inv-declined">Your last payment by ${esc(i.declined.via === "affirm" ? "Affirm" : i.declined.via === "klarna" ? "Klarna" : i.declined.via === "cashapp" ? "Cash App Pay" : i.declined.method === "paypal" ? "PayPal" : i.declined.method === "card" ? "card" : "bank account")} didn’t go through${i.declined.date ? ` (${day(i.declined.date)})` : ""}. Try again or use another method.</p>` : ""}
       ${payButtons(p, i)}
       ${i.status === "sent" && i.balance > i.awaiting && claimFor !== i.number ? `<button type="button" class="btn ghost small inv-sent" data-claim="${esc(i.number)}">I’ve sent payment</button>` : ""}
       ${claimFor === i.number ? claimForm(i) : ""}</li>`; }).join("")}</ul>`

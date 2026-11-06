@@ -10,7 +10,10 @@ export function invoiceLabel(inv) {
   }[inv.state] || [inv.state, "muted"];
 }
 
-export const METHOD = { bank_transfer: "Bank transfer", check: "Check", bank_debit: "Bank debit", card: "Card", paypal: "PayPal" };
+export const METHOD = { bank_transfer: "Bank transfer", check: "Check", bank_debit: "Bank debit", card: "Card", paypal: "PayPal",
+  affirm: "Affirm (pay over time)", klarna: "Klarna (pay over time)", cashapp: "Cash App Pay", link: "Card (via Link)" };
+// A payment's label: its "via" (Affirm, Klarna, Cash App, Link) when it has one, else its method.
+export const methodLabel = (x) => METHOD[x.via] || METHOD[x.method] || x.via || x.method;
 
 // Totals across many projects' invoices, for the admin header. Test projects (made-up money, testers'
 // practice projects) are counted apart so they never mix with real money.

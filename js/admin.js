@@ -1,5 +1,5 @@
 // Admin screen: every project, its status actions, invoices, delivery details and history. Talks to /api/admin/*.
-import { cents, invoiceLabel, METHOD, moneySummary } from "./money.js";
+import { cents, invoiceLabel, METHOD, methodLabel, moneySummary } from "./money.js";
 import * as X from "./integrations/index.js";
 const el = document.getElementById("admin");
 const toastEl = document.getElementById("toast");
@@ -570,7 +570,7 @@ function invRow(i) {
       ${i.issued ? `<span class="muted small">sent ${day(i.issued)}${i.due ? ` · due ${day(i.due)}` : ""}</span>` : i.due ? `<span class="muted small">due ${day(i.due)}</span>` : ""}
       <span class="inv-amt">${cents(i.total)}</span></div>
     <ul class="ai-lines">${i.lines.map((l) => `<li><span>${esc(l.item)}</span><span>${cents(l.amount)}</span></li>`).join("")}</ul>
-    ${i.payments.length ? `<ul class="ai-pays">${i.payments.map((x) => `<li><span>${day(x.date)} · ${esc(METHOD[x.method] || x.method)}${x.reference ? ` ${esc(x.reference)}` : ""}</span>
+    ${i.payments.length ? `<ul class="ai-pays">${i.payments.map((x) => `<li><span>${day(x.date)} · ${esc(methodLabel(x))}${x.reference ? ` ${esc(x.reference)}` : ""}</span>
       <span>${x.provider === "simulator" ? `<span class="test-tag">simulator</span> ` : x.provider === "stripe" ? `<span class="muted small">Stripe</span> ` : ""}<b>${cents(x.amount)}</b>${x.refunded ? ` <span class="muted small">(${cents(x.refunded)} refunded)</span>` : ""}
         ${x.amount > x.refunded && x.provider !== "simulator" ? `<button type="button" class="linkbtn" data-refund="${x.id}">Refund</button>` : ""}
         ${["manual", "simulator"].includes(x.provider) && !x.refunded ? `<button type="button" class="linkbtn tl-del" data-unpay="${x.id}">Remove</button>` : ""}</span></li>
