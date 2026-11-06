@@ -577,7 +577,9 @@ function invRow(i) {
       ${refundFor === x.id ? refundForm(x) : ""}`).join("")}
       ${(i.refunds || []).map((r) => `<li><span>${day(r.date)} · Refund${r.status === "pending" ? " (on its way)" : r.status === "failed" ? " (failed)" : ""}${r.reason ? ` · ${esc(r.reason)}` : ""}</span><b>&minus;${cents(r.amount)}</b></li>`).join("")}
       ${i.balance > 0 && i.status === "sent" ? `<li><span>Still due</span><b>${cents(i.balance)}</b></li>` : ""}</ul>` : ""}
-    ${(i.processing || []).map((x) => `<p class="muted small">Bank payment of ${cents(x.amount)} clearing at Stripe since ${day(x.since)}. It’s recorded when the bank confirms (usually 3–5 business days).</p>`).join("")}
+    ${(i.processing || []).map((x) => x.verify
+      ? `<p class="muted small">Bank payment of ${cents(x.amount)} started ${day(x.since)}, waiting for the client to confirm their bank account (two small deposits on Stripe's page).</p>`
+      : `<p class="muted small">Bank payment of ${cents(x.amount)} clearing at Stripe since ${day(x.since)}. It’s recorded when the bank confirms (usually 3–5 business days).</p>`).join("")}
     ${(i.needsRefund || []).map((x) => `<p class="callout">Stripe collected ${cents(x.amount)} that couldn’t go on this invoice (already paid or cancelled). <button type="button" class="btn small" data-unapplied="${esc(x.session)}">Refund it in full</button></p>`).join("")}
     ${i.claims.length ? `<ul class="ai-claims">${i.claims.map((c) => `<li>Client says ${cents(c.amount)} by ${esc((METHOD[c.method] || c.method).toLowerCase())}${c.reference ? ` ${esc(c.reference)}` : ""} was sent ${day(c.date)}. Confirm it above, under Payments to confirm.</li>`).join("")}</ul>` : ""}
     ${payFor === i.number ? payForm(i) : ""}

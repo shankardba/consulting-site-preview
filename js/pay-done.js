@@ -26,6 +26,8 @@ async function load() {
   const amt = `<b>${cents(s.amount)}</b>`;
   if (s.status === "paid" && s.state !== "needs_refund") return card("Thank you, payment received", `${amt} for invoice ${esc(s.invoice.number)} is recorded on your project. A receipt is on the invoice.`, s, "ok");
   if (s.state === "needs_refund") return card("Payment received", `${amt} arrived, but this invoice was already settled. We'll refund it to you and confirm on your project.`, s);
+  if (s.status === "processing" && s.state === "verify") return card("One more step: confirm your bank account",
+    `Stripe is sending two small deposits to your bank account, usually within 1 to 2 business days. When they arrive, enter them on Stripe's page to finish paying ${amt}.${s.verifyUrl ? ` <a href="${esc(s.verifyUrl)}" rel="noopener">Confirm your bank account</a>.` : " Stripe emails you the link."}`, s);
   if (s.status === "processing") return card("Bank payment on its way", `Your bank payment of ${amt} is clearing. That usually takes 3 to 5 business days. Your invoice updates by itself when it lands; there's nothing more to do.`, s);
   if (s.status === "declined") return card("Payment didn't go through", `The payment of ${amt} was declined. You can try again from your project, or pay by bank transfer or check.`, s);
   if (cancelled) return card("No payment made", `You left the payment page, so nothing was charged. You can pay from your project whenever you're ready.`, s);

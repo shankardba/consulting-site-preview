@@ -106,6 +106,7 @@ function testerBar() {
 // is the simulator's; with Stripe/PayPal it becomes theirs.
 function payButtons(p, i) {
   const methods = (data.payMethods || []).filter((m) => (p.pay || []).includes(m.id));
+  if (i.processing?.[0]?.verify) return `<p class="small"><b>One more step:</b> confirm your bank account to finish paying ${cents(i.processing[0].amount)}. Stripe sends two small deposits within 1 to 2 business days; enter them on ${i.processing[0].verifyUrl ? `<a href="${esc(i.processing[0].verifyUrl)}" rel="noopener">Stripe's confirmation page</a>` : "the page in Stripe's email"}.</p>`;
   if (i.processing?.length) return `<p class="muted small">Your bank payment of ${cents(i.processing[0].amount)} is clearing. It usually takes 3 to 5 business days, and this invoice updates by itself.</p>`;
   if (!methods.length || i.status !== "sent" || i.balance <= i.awaiting) return "";
   const due = i.balance - i.awaiting;
