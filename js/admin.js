@@ -571,7 +571,7 @@ function invRow(i) {
       <span class="inv-amt">${cents(i.total)}</span></div>
     <ul class="ai-lines">${i.lines.map((l) => `<li><span>${esc(l.item)}</span><span>${cents(l.amount)}</span></li>`).join("")}</ul>
     ${i.payments.length ? `<ul class="ai-pays">${i.payments.map((x) => `<li><span>${day(x.date)} · ${esc(methodLabel(x))}${x.reference ? ` ${esc(x.reference)}` : ""}</span>
-      <span>${x.provider === "simulator" ? `<span class="test-tag">simulator</span> ` : x.provider === "stripe" ? `<span class="muted small">Stripe</span> ` : ""}<b>${cents(x.amount)}</b>${x.refunded ? ` <span class="muted small">(${cents(x.refunded)} refunded)</span>` : ""}
+      <span>${x.provider === "simulator" ? `<span class="test-tag">simulator</span> ` : x.provider === "stripe" ? `<span class="muted small">Stripe</span> ` : ""}<b>${cents(x.amount)}</b>${x.discount ? ` <span class="muted small">(+${cents(x.discount)} bank discount)</span>` : ""}${x.refunded ? ` <span class="muted small">(${cents(x.refunded)} refunded)</span>` : ""}
         ${x.amount > x.refunded && x.provider !== "simulator" ? `<button type="button" class="linkbtn" data-refund="${x.id}">Refund</button>` : ""}
         ${["manual", "simulator"].includes(x.provider) && !x.refunded ? `<button type="button" class="linkbtn tl-del" data-unpay="${x.id}">Remove</button>` : ""}</span></li>
       ${refundFor === x.id ? refundForm(x) : ""}`).join("")}
@@ -604,11 +604,12 @@ function refundForm(x) {
 function payForm(i) {
   return `<form class="ai-form" id="pay-form" data-n="${esc(i.number)}">
     <div class="adm-fields">
-      <label>Amount ($)<input name="amount" inputmode="decimal" value="${(i.balance / 100).toFixed(2)}" required></label>
+      <label>Amount ($)<input name="amount" inputmode="decimal" value="${((i.bank ? i.bank.price : i.balance) / 100).toFixed(2)}" required></label>
       <label>How<select name="method">${meta.methods.filter((m) => ["bank_transfer", "check"].includes(m.id)).map((m) => `<option value="${m.id}">${esc(m.label)}</option>`).join("")}</select></label>
       <label>Received on<input type="date" name="date" value="${meta.today}" required></label>
       <label>Reference (optional)<input name="reference" maxlength="80" placeholder="Check # or transfer ref"></label>
     </div>
+    ${i.bank ? `<p class="muted small">Whole invoice by bank transfer or check: ${cents(i.bank.price)} settles it (${i.bank.pct}% bank discount). Card or partial: up to ${cents(i.balance)}.</p>` : ""}
     <div class="row-btns"><button class="btn small" type="submit">Record payment</button><button class="btn ghost small" type="button" id="pay-cancel">Cancel</button></div>
   </form>`;
 }

@@ -45,7 +45,7 @@ function render({ invoice: i, project: p, payTo }) {
         <tbody>${i.lines.map((l) => `<tr><td>${esc(l.item)}</td><td class="n">${cents(l.amount)}</td></tr>`).join("")}</tbody>
         <tfoot>
           <tr><th>Total</th><td class="n">${cents(i.total)}</td></tr>
-          ${i.payments.map((x) => `<tr class="muted"><td>Paid ${day(x.date)} by ${esc(x.via ? methodLabel(x) : methodLabel(x).toLowerCase())}${x.reference ? ` (${esc(x.reference)})` : ""}${x.provider === "simulator" ? " · test payment, no money moved" : ""}</td><td class="n">−${cents(x.amount)}</td></tr>`).join("")}
+          ${i.payments.map((x) => `<tr class="muted"><td>Paid ${day(x.date)} by ${esc(x.via ? methodLabel(x) : methodLabel(x).toLowerCase())}${x.reference ? ` (${esc(x.reference)})` : ""}${x.provider === "simulator" ? " · test payment, no money moved" : ""}</td><td class="n">−${cents(x.amount)}</td></tr>${x.discount ? `<tr class="muted"><td>Bank-payment discount</td><td class="n">−${cents(x.discount)}</td></tr>` : ""}`).join("")}
           ${i.status === "sent" ? `<tr class="inv-due"><th>${receipt ? "Balance" : "Amount due"}</th><td class="n">${cents(i.balance)}</td></tr>` : ""}
           ${(i.claims || []).map((c) => `<tr class="muted"><td>Sent ${day(c.date)} by ${esc((METHOD[c.method] || c.method).toLowerCase())}${c.reference ? ` (${esc(c.reference)})` : ""}, waiting for confirmation</td><td class="n">${cents(c.amount)}</td></tr>`).join("")}
         </tfoot>
@@ -53,6 +53,7 @@ function render({ invoice: i, project: p, payTo }) {
       ${i.note ? `<p>${esc(i.note)}</p>` : ""}
       ${i.status === "void" ? `<p class="callout">This invoice was cancelled. Nothing is owed on it.</p>`
         : !receipt ? `<section class="inv-pay"><h2>How to pay</h2>
+          ${i.bank ? `<p><b>Pay ${cents(i.bank.price)} by bank transfer, ACH or check</b> (${i.bank.pct}% off for paying the whole invoice by bank), or ${cents(i.balance)} by card.</p>` : ""}
           <p class="pay-how">${payTo ? esc(payTo) : "By bank transfer or check. Our bank details will be sent to you separately until they can be printed here."}</p>
           <p class="muted small">Please put <b>${esc(i.number)}</b> in the transfer reference or on the check.</p></section>`
         : `<p class="muted">Thank you. This invoice is paid in full.</p>`}

@@ -105,12 +105,14 @@ function testerBar() {
 // Pay buttons: testers and admins on test projects only, until a real provider is live. The checkout page
 // is the simulator's; with Stripe/PayPal it becomes theirs.
 function payButtons(p, i) {
-  const methods = [...((p.pay || []).includes("online") && data.payOnline ? [data.payOnline] : []), ...(data.payMethods || []).filter((m) => (p.pay || []).includes(m.id))];
+  const methods = (data.payMethods || []).filter((m) => (p.pay || []).includes(m.id));
   if (i.processing?.length) return `<p class="muted small">Your bank payment of ${cents(i.processing[0].amount)} is clearing. It usually takes 3 to 5 business days, and this invoice updates by itself.</p>`;
   if (!methods.length || i.status !== "sent" || i.balance <= i.awaiting) return "";
   const due = i.balance - i.awaiting;
-  return `<div class="inv-pay"><span class="muted">Pay ${cents(due)} online${data.stripeTest ? " (test mode: no money moves)" : ""}:</span>${methods.map((m) =>
-    `<button type="button" class="btn small${["bank_debit", "online"].includes(m.id) ? "" : " ghost"}" data-pay="${esc(i.number)}" data-method="${m.id}">${esc(m.label)}</button>`).join("")}
+  // Bank shows its discounted price; the others the full balance.
+  const price = (m) => m.id === "bank_debit" && i.bank && !i.awaiting ? `${cents(i.bank.price)}, ${i.bank.pct}% off` : cents(due);
+  return `<div class="inv-pay"><span class="muted">Pay online${data.stripeTest ? " (test mode: no money moves)" : ""}:</span>${methods.map((m) =>
+    `<button type="button" class="btn small${m.id === "bank_debit" ? "" : " ghost"}" data-pay="${esc(i.number)}" data-method="${m.id}">${esc(m.label)}: ${price(m)}</button>`).join("")}
     ${(p.pay || []).includes("over_time") && data.payOverTime && due >= data.payOverTime.min ? overTime(i) : ""}</div>`;
 }
 
@@ -381,8 +383,9 @@ function pricing(p) {
 
 // "I've sent payment" for a bank transfer or check. Card and PayPal come with the Pay button later.
 function claimForm(i) {
-  const left = i.balance - i.awaiting;
+  const left = i.bank && !i.awaiting ? i.bank.price : i.balance - i.awaiting;
   return `<form class="claim-form" id="claim-form">
+    ${i.bank && !i.awaiting ? `<p class="muted small">Paying the whole invoice by bank transfer or check takes ${i.bank.pct}% off: ${cents(i.bank.price)} instead of ${cents(i.balance)}.</p>` : ""}
     <label>How<select name="method"><option value="bank_transfer">Bank transfer</option><option value="check">Check</option></select></label>
     <label>Amount ($)<input name="amount" inputmode="decimal" value="${(left / 100).toFixed(2)}" required></label>
     <label>Date sent<input type="date" name="date" value="${new Date().toLocaleDateString("en-CA")}" required></label>
