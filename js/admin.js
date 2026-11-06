@@ -33,7 +33,7 @@ const DEFAULT_QUOTE = [
 
 let meta = {}, projects = [], selected = location.hash.slice(1) || null, view = "open", quoting = false;
 let planEdit = false; // the plan form is open on a sent plan (revising)
-let invOpen = false, payFor = null; // the new-invoice form, and which invoice's payment form is open
+let invOpen = false, payFor = null, refundFor = null; // the new-invoice form, and which invoice's payment form is open
 
 async function api(path, body) {
   const res = await fetch("/api/admin/" + path, body
@@ -538,7 +538,7 @@ function invoicesCard(p) {
       ${BILLABLE.includes(p.status) && !invOpen ? `<button type="button" class="btn small" id="inv-new">New invoice</button>` : ""}</div>
     ${invOpen ? invForm(sugg) : ""}
     ${p.invoices.map(invRow).join("") || (invOpen ? "" : `<p class="muted small">No invoices yet.${sugg.length ? " Start one from the quote." : ""}</p>`)}
-    <p class="muted small">${meta.payTo ? "Invoices show your bank transfer and check details." : "Bank transfer and check details aren’t set yet (PAY_TO), so invoices say they will follow."} Card and PayPal payments arrive in phase 2.</p>
+    <p class="muted small">${meta.payTo ? "Invoices show your bank transfer and check details." : "Bank transfer and check details aren’t set yet (PAY_TO), so invoices say they will follow."} ${meta.stripe ? "Clients can pay by card or bank account through Stripe." : "Card and bank payments go through Stripe once its key is set (docs/integrations/stripe.md); PayPal comes later."}</p>
   </div>`;
 }
 
@@ -571,8 +571,14 @@ function invRow(i) {
       <span class="inv-amt">${cents(i.total)}</span></div>
     <ul class="ai-lines">${i.lines.map((l) => `<li><span>${esc(l.item)}</span><span>${cents(l.amount)}</span></li>`).join("")}</ul>
     ${i.payments.length ? `<ul class="ai-pays">${i.payments.map((x) => `<li><span>${day(x.date)} · ${esc(METHOD[x.method] || x.method)}${x.reference ? ` ${esc(x.reference)}` : ""}</span>
-      <span>${x.provider === "simulator" ? `<span class="test-tag">simulator</span> ` : ""}<b>${cents(x.amount)}</b> ${["manual", "simulator"].includes(x.provider) ? `<button type="button" class="linkbtn tl-del" data-unpay="${x.id}">Remove</button>` : ""}</span></li>`).join("")}
+      <span>${x.provider === "simulator" ? `<span class="test-tag">simulator</span> ` : x.provider === "stripe" ? `<span class="muted small">Stripe</span> ` : ""}<b>${cents(x.amount)}</b>${x.refunded ? ` <span class="muted small">(${cents(x.refunded)} refunded)</span>` : ""}
+        ${x.amount > x.refunded && x.provider !== "simulator" ? `<button type="button" class="linkbtn" data-refund="${x.id}">Refund</button>` : ""}
+        ${["manual", "simulator"].includes(x.provider) && !x.refunded ? `<button type="button" class="linkbtn tl-del" data-unpay="${x.id}">Remove</button>` : ""}</span></li>
+      ${refundFor === x.id ? refundForm(x) : ""}`).join("")}
+      ${(i.refunds || []).map((r) => `<li><span>${day(r.date)} · Refund${r.status === "pending" ? " (on its way)" : r.status === "failed" ? " (failed)" : ""}${r.reason ? ` · ${esc(r.reason)}` : ""}</span><b>&minus;${cents(r.amount)}</b></li>`).join("")}
       ${i.balance > 0 && i.status === "sent" ? `<li><span>Still due</span><b>${cents(i.balance)}</b></li>` : ""}</ul>` : ""}
+    ${(i.processing || []).map((x) => `<p class="muted small">Bank payment of ${cents(x.amount)} clearing at Stripe since ${day(x.since)}. It’s recorded when the bank confirms (usually 3–5 business days).</p>`).join("")}
+    ${(i.needsRefund || []).map((x) => `<p class="callout">Stripe collected ${cents(x.amount)} that couldn’t go on this invoice (already paid or cancelled). <button type="button" class="btn small" data-unapplied="${esc(x.session)}">Refund it in full</button></p>`).join("")}
     ${i.claims.length ? `<ul class="ai-claims">${i.claims.map((c) => `<li>Client says ${cents(c.amount)} by ${esc((METHOD[c.method] || c.method).toLowerCase())}${c.reference ? ` ${esc(c.reference)}` : ""} was sent ${day(c.date)}. Confirm it above, under Payments to confirm.</li>`).join("")}</ul>` : ""}
     ${payFor === i.number ? payForm(i) : ""}
     <div class="row-btns">
@@ -581,6 +587,18 @@ function invRow(i) {
       <a class="btn ghost small" href="invoice.html?n=${encodeURIComponent(i.number)}" target="_blank" rel="noopener">View${i.status === "draft" ? " draft" : ""}</a>
       ${i.status !== "void" && !i.payments.length && !i.claims.length ? btn("void", i.status === "draft" ? "Delete draft" : "Cancel invoice", "ghost danger") : ""}
     </div></div>`;
+}
+
+function refundForm(x) {
+  const left = x.amount - (x.refunded || 0);
+  return `<li><form class="ai-form" id="refund-form" data-pid="${x.id}">
+    <div class="adm-fields">
+      <label>Refund ($)<input name="amount" inputmode="decimal" value="${(left / 100).toFixed(2)}" required></label>
+      <label>Reason (the client sees it)<input name="reason" maxlength="300" placeholder="e.g. Stage cancelled by agreement"></label>
+    </div>
+    <p class="muted small">${x.provider === "stripe" ? "Stripe sends it back to the card or bank account it came from." : "Send the money yourself (bank transfer or check); this records it."} Up to ${cents(left)}.</p>
+    <div class="row-btns"><button class="btn small" type="submit">Refund</button><button class="btn ghost small" type="button" id="refund-cancel">Cancel</button></div>
+  </form></li>`;
 }
 
 function payForm(i) {
@@ -631,6 +649,19 @@ function wireInvoices(p) {
     pf.querySelector("#pay-cancel").onclick = () => { payFor = null; render(); };
     pf.onsubmit = (e) => { e.preventDefault(); run(() => api("payment-record", { number: pf.dataset.n, ...fields(pf) }), "Payment recorded."); };
   }
+  card.querySelectorAll("[data-refund]").forEach((b) => b.onclick = () => { refundFor = Number(b.dataset.refund); render(); el.querySelector("#refund-form [name=amount]")?.focus(); });
+  const rf = card.querySelector("#refund-form");
+  if (rf) {
+    rf.querySelector("#refund-cancel").onclick = () => { refundFor = null; render(); };
+    rf.onsubmit = (e) => {
+      e.preventDefault();
+      if (!confirm(`Refund $${rf.amount.value}? The client sees it on their timeline.`)) return;
+      run(() => api("refund", { paymentId: rf.dataset.pid, amount: rf.amount.value, reason: rf.reason.value }), "Refund recorded.");
+    };
+  }
+  card.querySelectorAll("[data-unapplied]").forEach((b) => b.onclick = () => {
+    if (confirm("Refund this payment in full through Stripe?")) run(() => api("refund-unapplied", { session: b.dataset.unapplied }), "Refund sent.");
+  });
   card.querySelectorAll("[data-unpay]").forEach((b) => b.onclick = () => {
     if (confirm("Remove this payment? Its entry in the client’s history goes too.")) run(() => api("payment-remove", { paymentId: b.dataset.unpay }), "Payment removed.");
   });
@@ -639,7 +670,7 @@ function wireInvoices(p) {
 // ---------- behaviour ----------
 
 async function run(fn, ok) {
-  try { const out = await fn(); if (out?.project) { replace(out.project); follow(); } quoting = false; invOpen = false; payFor = null; render(); if (ok) toast(ok); }
+  try { const out = await fn(); if (out?.project) { replace(out.project); follow(); } quoting = false; invOpen = false; payFor = null; refundFor = null; render(); if (ok) toast(ok); }
   catch (e) { if (e.message !== "signed out") toast(e.message, true); }
 }
 

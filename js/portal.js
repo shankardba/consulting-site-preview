@@ -105,8 +105,10 @@ function testerBar() {
 // Pay buttons: testers and admins on test projects only, until a real provider is live. The checkout page
 // is the simulator's; with Stripe/PayPal it becomes theirs.
 function payButtons(p, i) {
-  if (!(p.test && data.user.tester) || i.status !== "sent" || i.balance <= i.awaiting) return "";
-  return `<div class="inv-pay"><span class="muted">Pay ${cents(i.balance - i.awaiting)} online:</span>${(data.payMethods || []).map((m) =>
+  const methods = (data.payMethods || []).filter((m) => (p.pay || []).includes(m.id));
+  if (i.processing?.length) return `<p class="muted small">Your bank payment of ${cents(i.processing[0].amount)} is clearing. It usually takes 3 to 5 business days, and this invoice updates by itself.</p>`;
+  if (!methods.length || i.status !== "sent" || i.balance <= i.awaiting) return "";
+  return `<div class="inv-pay"><span class="muted">Pay ${cents(i.balance - i.awaiting)} online${data.stripeTest ? " (test mode: no money moves)" : ""}:</span>${methods.map((m) =>
     `<button type="button" class="btn small${m.id === "bank_debit" ? "" : " ghost"}" data-pay="${esc(i.number)}" data-method="${m.id}">${esc(m.label)}</button>`).join("")}</div>`;
 }
 
